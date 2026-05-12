@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `RLM::CodeExtractor` for strict `<rlm-code>` / `<rlm-final>` response parsing.
+
 ## [0.1.0] - 2026-05-12
 
 Skeleton release. Establishes the public types, configuration surface, sandbox
@@ -30,7 +34,7 @@ v0.2.
 
 ### Not yet implemented (tracked for v0.2+)
 
-- Runtime execution loop, code extractor, runtime bridge, recursive `predict(...)`.
+- Runtime execution loop, runtime bridge, recursive `predict(...)`.
 - RubyLLM root/sub-LM adapters.
 - dspy.rb signature adapter and output validation.
 - `RLM::Sandbox::Subprocess` backend.
