@@ -3,6 +3,7 @@
 require_relative "rlm/version"
 require_relative "rlm/errors"
 require_relative "rlm/code_extractor"
+require_relative "rlm/prompt_builder"
 require_relative "rlm/lm/mock"
 require_relative "rlm/limits"
 require_relative "rlm/file"

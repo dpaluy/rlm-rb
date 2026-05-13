@@ -22,6 +22,10 @@ class RLMTest < Minitest::Test
     assert_kind_of RLM::Config, RLM.config
   end
 
+  def test_prompt_builder_is_loaded
+    assert defined?(RLM::PromptBuilder)
+  end
+
   def test_configure_yields_config
     RLM.configure do |config|
       config.cache = :test_cache
