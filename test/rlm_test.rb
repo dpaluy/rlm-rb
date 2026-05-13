@@ -40,9 +40,18 @@ class RLMTest < Minitest::Test
   end
 
   def test_predict_delegates_to_predict_class
-    error = assert_raises(NotImplementedError) do
-      RLM.predict(:my_signature, input: { text: "hi" })
+    signature = Class.new do
+      def self.name = "InlineSignature"
+      def self.description = "Inline test"
+      def self.input_fields = {}
+      def self.output_fields = { ok: :boolean }
+      def self.validate_input(_input) = []
+      def self.validate_output(output) = output.key?("ok") ? [] : ["ok is required"]
     end
-    assert_match(/Predict#call is not implemented/, error.message)
+
+    result = RLM.predict(signature, input: {}, lm: RLM::Lm::Mock.new(responses: ['<rlm-final>{"ok":true}</rlm-final>']))
+
+    assert result.success?
+    assert_equal({ "ok" => true }, result.output)
   end
 end

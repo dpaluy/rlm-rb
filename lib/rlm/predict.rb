@@ -3,7 +3,7 @@
 module RLM
   class Predict
     attr_reader :signature, :lm, :sub_lm, :tools, :skills, :sandbox,
-                :limits, :trace_store, :validators
+                :limits, :trace_store, :validators, :signatures
 
     def initialize(
       signature,
@@ -14,7 +14,8 @@ module RLM
       sandbox: nil,
       limits: nil,
       trace_store: nil,
-      validators: []
+      validators: [],
+      signatures: []
     )
       raise ConfigurationError, "signature is required" if signature.nil?
 
@@ -27,15 +28,22 @@ module RLM
       @limits = limits || RLM.config.default_limits
       @trace_store = trace_store || RLM.config.trace_store
       @validators = Array(validators)
+      @signatures = signatures
     end
 
-    def call(_input = {})
-      raise NotImplementedError,
-            "RLM::Predict#call is not implemented in v0.1.0. " \
-            "The runtime loop, RubyLLM root/sub-LM adapters, and dspy.rb " \
-            "signature adapter land in v0.2. The skeleton exists so that " \
-            "downstream code can wire up signatures, tools, sandboxes, and " \
-            "limits against a stable API."
+    def call(input = {})
+      Runtime.new(
+        signature: signature,
+        input: input,
+        lm: lm,
+        sub_lm: sub_lm,
+        tools: tools,
+        skills: skills,
+        sandbox: sandbox,
+        limits: limits,
+        validators: validators,
+        signatures: signatures
+      ).call
     end
   end
 end

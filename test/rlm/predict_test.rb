@@ -5,6 +5,15 @@ require "test_helper"
 class RLM::PredictTest < Minitest::Test
   include TestConfig
 
+  FakeSignature = Class.new do
+    def self.name = "FakeSignature"
+    def self.description = "Fake predict test"
+    def self.input_fields = {}
+    def self.output_fields = { ok: :boolean }
+    def self.validate_input(_input) = []
+    def self.validate_output(output) = output.key?("ok") || output.key?(:ok) ? [] : ["ok is required"]
+  end
+
   def setup
     setup_config
   end
@@ -34,9 +43,13 @@ class RLM::PredictTest < Minitest::Test
     assert_equal [:fake_tool], predictor.tools
   end
 
-  def test_call_raises_not_implemented_for_skeleton
-    predictor = RLM::Predict.new(:my_signature)
-    error = assert_raises(NotImplementedError) { predictor.call({}) }
-    assert_match(/RLM::Predict#call is not implemented/, error.message)
+  def test_call_runs_runtime
+    lm = RLM::Lm::Mock.new(responses: ['<rlm-final>{"ok":true}</rlm-final>'])
+    predictor = RLM::Predict.new(FakeSignature, lm: lm)
+
+    result = predictor.call({})
+
+    assert result.success?
+    assert_equal({ "ok" => true }, result.output)
   end
 end

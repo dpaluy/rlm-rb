@@ -13,6 +13,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `RLM::Lm::Mock` for deterministic runtime-spine tests.
 - `RLM::PromptBuilder` for deterministic strict prompt construction from signatures, inputs, context
   manifests, and limits.
+- `RLM::Runtime::Bridge` for sandbox-exposed `predict`, `tool`, `submit`, `read_file`,
+  `list_files`, and `log` runtime services.
+- `RLM::Signature` protocol helpers for runtime-independent signature validation.
+- `RLM::Sandbox::UnsafeInProcess` for dev/test-only runtime-spine integration tests.
+- `RLM::Runtime` mock execution loop with prompt building, LM calls, code/final extraction,
+  sandbox execution, recursive subcalls, validation, budget failure, and `RLM::Result` output.
+- `RLM::Predict#call` now delegates to the runtime spine.
 
 ## [0.1.0] - 2026-05-12
 

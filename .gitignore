@@ -11,3 +11,5 @@
 .DS_Store
 Gemfile.lock
 docs/prd.md
+.sisyphus/
+

@@ -15,6 +15,8 @@ module RLM
       file_read
       tool_called
       sub_lm_called
+      output_submitted
+      runtime_logged
       validation_attempted
       validation_failed
       budget_checked
