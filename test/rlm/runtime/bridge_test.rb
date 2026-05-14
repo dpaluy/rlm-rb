@@ -17,8 +17,10 @@ class RLM::Runtime::BridgeTest < Minitest::Test
     end
   end
 
-  FakeRuntime = Struct.new(:calls) do
+  FakeRuntime = Struct.new(:calls, :max_depth) do
     def predict_subcall(signature, input, depth:)
+      raise RLM::BudgetExceededError, "max_recursion_depth exceeded" if max_depth && depth > max_depth
+
       calls << { signature: signature, input: input, depth: depth }
       { summary: "sub result" }
     end
@@ -138,7 +140,7 @@ class RLM::Runtime::BridgeTest < Minitest::Test
   end
 
   def test_predict_routes_recursive_subcall_and_records_trace
-    runtime = FakeRuntime.new([])
+    runtime = FakeRuntime.new([], nil)
     trace = RLM::Trace.new
     bridge = build_bridge(runtime: runtime, trace: trace, signatures: { "FakeSignature" => FakeSignature })
 
@@ -172,15 +174,29 @@ class RLM::Runtime::BridgeTest < Minitest::Test
     end
   end
 
+  def test_predict_rejects_recursive_depth_exceeded
+    runtime = FakeRuntime.new([], 1)
+    bridge = build_bridge(
+      runtime: runtime,
+      signatures: { "FakeSignature" => FakeSignature },
+      depth: 2
+    )
+
+    assert_raises(RLM::BudgetExceededError) do
+      bridge.predict("FakeSignature", { text: "hello" })
+    end
+  end
+
   private
 
-  def build_bridge(runtime: nil, context: RLM::Context.new, trace: RLM::Trace.new, tools: [], signatures: {})
+  def build_bridge(runtime: nil, context: RLM::Context.new, trace: RLM::Trace.new, tools: [], signatures: {}, depth: 0)
     RLM::Runtime::Bridge.new(
       runtime: runtime,
       context: context,
       trace: trace,
       tools: tools,
-      signatures: signatures
+      signatures: signatures,
+      depth: depth
     )
   end
 end
