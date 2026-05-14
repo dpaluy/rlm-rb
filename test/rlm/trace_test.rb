@@ -37,6 +37,26 @@ class RLM::TraceTest < Minitest::Test
     assert_equal 1, trace.validation_errors.size
   end
 
+  def test_event_types_cover_prd_contract
+    assert_equal %i[
+      run_started
+      root_prompt_created
+      root_lm_called
+      code_generated
+      code_executed
+      file_read
+      tool_called
+      sub_lm_called
+      output_submitted
+      runtime_logged
+      validation_attempted
+      validation_failed
+      budget_checked
+      run_completed
+      run_failed
+    ], RLM::Trace::EVENT_TYPES
+  end
+
   def test_to_h_includes_id_and_events
     trace = RLM::Trace.new(id: "fixed-id")
     trace.record(:run_started)

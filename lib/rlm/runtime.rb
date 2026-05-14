@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "json"
+
 require_relative "code_extractor"
 require_relative "context"
 require_relative "errors"
@@ -102,6 +104,7 @@ module RLM
 
     def run_loop(bridge)
       loop do
+        ensure_time_budget!
         parsed = call_root_lm
         return complete(parsed.content) if parsed.final?
 
@@ -134,15 +137,19 @@ module RLM
         signature: Signature.name_for(checked_signature),
         cost_cents: cost_delta(candidate, before_cost)
       )
+      ensure_cost_budget!
       response
     end
 
     def execute_code(code)
+      ensure_time_budget!
+      trace.record(:budget_checked, budget: :iterations, current: iterations, limit: limits.max_iterations)
       raise BudgetExceededError, "max_iterations exceeded" if iterations >= limits.max_iterations
 
       @iterations += 1
       trace.record(:code_generated, code: code)
       result = sandbox.exec(code)
+      ensure_stdout_budget!(result)
       trace.record(:code_executed, result: result.to_h)
       handle_sandbox_result!(result)
     end
@@ -150,11 +157,13 @@ module RLM
     def handle_sandbox_result!(result)
       return if result.ok?
       raise result.error if result.error.is_a?(BudgetExceededError)
+      raise result.error if result.error.is_a?(ParseError)
 
       raise SandboxError, result.error&.message || result.stderr || "sandbox execution failed"
     end
 
     def complete(output)
+      ensure_output_budget!(output)
       errors = validate_output(signature, output)
       return validation_failure(errors) unless errors.empty?
 
@@ -197,11 +206,12 @@ module RLM
     end
 
     def validation_failure(errors, error = nil)
-      trace.record(:run_failed, status: :failed_validation, errors: errors)
       finish(:failed_validation, validation_errors: errors, error: error)
     end
 
     def finish(status, output: nil, error: nil, validation_errors: [])
+      record_run_failed(status, error:, validation_errors:) unless status == :completed
+
       Result.new(
         trace: trace,
         status: status,
@@ -216,7 +226,44 @@ module RLM
     end
 
     def ensure_llm_budget!
+      trace.record(:budget_checked, budget: :llm_calls, current: llm_calls, limit: limits.max_llm_calls)
       raise BudgetExceededError, "max_llm_calls exceeded" if llm_calls >= limits.max_llm_calls
+    end
+
+    def ensure_cost_budget!
+      current_cost = runtime_cost_cents
+      trace.record(:budget_checked, budget: :cost_cents, current: current_cost, limit: limits.max_cost_cents)
+      raise BudgetExceededError, "max_cost_cents exceeded" if current_cost >= limits.max_cost_cents
+    end
+
+    def ensure_time_budget!
+      current_ms = trace.duration_ms
+      limit_ms = limits.max_runtime_seconds * 1000
+      trace.record(:budget_checked, budget: :runtime_seconds, current: current_ms, limit: limit_ms)
+      raise BudgetExceededError, "max_runtime_seconds exceeded" if current_ms >= limit_ms
+    end
+
+    def ensure_output_budget!(output)
+      current_bytes = JSON.generate(output).bytesize
+      trace.record(:budget_checked, budget: :output_bytes, current: current_bytes, limit: limits.max_output_bytes)
+      raise BudgetExceededError, "max_output_bytes exceeded" if current_bytes > limits.max_output_bytes
+    end
+
+    def ensure_stdout_budget!(result)
+      current_bytes = result.stdout.to_s.bytesize
+      trace.record(:budget_checked, budget: :stdout_bytes, current: current_bytes, limit: limits.max_stdout_bytes)
+      raise BudgetExceededError, "max_stdout_bytes exceeded" if current_bytes > limits.max_stdout_bytes
+    end
+
+    def record_run_failed(status, error:, validation_errors: [])
+      payload = { status: status }
+      payload[:error] = trace_error_payload(error) if error
+      payload[:errors] = validation_errors if validation_errors.any?
+      trace.record(:run_failed, payload)
+    end
+
+    def trace_error_payload(error)
+      { class: error.class.name, message: error.message }
     end
 
     def runtime_cost_cents
