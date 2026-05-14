@@ -20,6 +20,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `RLM::Runtime` mock execution loop with prompt building, LM calls, code/final extraction,
   sandbox execution, recursive subcalls, validation, budget failure, and `RLM::Result` output.
 - `RLM::Predict#call` now delegates to the runtime spine.
+- Budget enforcement expanded to `max_cost_cents` and `max_runtime_seconds`.
+- Trace event completeness: `:budget_checked` recorded at all budget checks, `:run_failed` recorded on all failure paths.
+- PromptBuilder v0.2 contract: signature description, input/output fields, available helpers, safety instructions.
+- Parse failures are deterministic and fail-closed (deferred repair attempts to future milestone).
+- Sandbox cleanup proven across all failure modes (success, validation, parse, provider, budget, sandbox errors).
 
 ## [0.1.0] - 2026-05-12
 
@@ -42,9 +47,8 @@ v0.2.
 - `RLM::Tool` base class with category DSL.
 - `RLM::Predict` skeleton (`#call` raises `NotImplementedError` until the runtime loop lands).
 
-### Not yet implemented (tracked for v0.2+)
+### Not yet implemented (tracked for future milestones)
 
-- Runtime execution loop, runtime bridge, recursive `predict(...)`.
 - RubyLLM root/sub-LM adapters.
 - dspy.rb signature adapter and output validation.
 - `RLM::Sandbox::Subprocess` backend.

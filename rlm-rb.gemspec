@@ -11,9 +11,9 @@ Gem::Specification.new do |spec|
   spec.summary = "Ruby/Rails-native runtime for typed, sandboxed, auditable AI jobs over large application context."
   spec.description = <<~DESC.strip
     RLM.rb is a Ruby/Rails-native runtime for Recursive Language Models. It runs bounded, typed, auditable AI jobs
-    over large files, records, and application context. RLM.rb uses RubyLLM for provider access and dspy.rb for
-    typed signatures, and adds the missing recursive execution runtime: sandbox, REPL loop, file/context mounting,
-    recursive sub-LM calls, typed final output, budget controls, and durable trajectories.
+    over large files, records, and application context. RLM.rb is designed to integrate with RubyLLM for provider
+    access and dspy.rb for typed signatures, and adds the missing recursive execution runtime: sandbox, REPL loop,
+    file/context mounting, recursive sub-LM calls, typed final output, budget controls, and durable trajectories.
   DESC
   spec.homepage = "https://github.com/dpaluy/rlm-rb"
   spec.license = "MIT"

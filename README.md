@@ -6,13 +6,14 @@
 Recursive Language Models for Ruby and Rails.
 
 RLM.rb is a Ruby/Rails-native runtime for typed, sandboxed, auditable AI jobs over large application context.
-It depends on [RubyLLM](https://github.com/crmne/ruby_llm) for provider access and [dspy.rb](https://github.com/vicentereig/dspy.rb)
+It is designed to integrate with [RubyLLM](https://github.com/crmne/ruby_llm) for provider access and [dspy.rb](https://github.com/vicentereig/dspy.rb)
 for typed signatures, and adds the missing recursive execution runtime: sandbox, REPL loop, file and context mounting,
 recursive sub-LM calls, typed final output, budget controls, and durable trajectories.
 
-> **Status: v0.1.0 skeleton.** Core types are in place. The runtime loop, provider adapters, signature adapter,
-> subprocess sandbox, and Rails integration are not yet implemented and are tracked in the v0.2 milestone in
-> `docs/prd.md`. `RLM::Predict#call` raises `NotImplementedError` in this release.
+> **Status: Unreleased v0.2 mock runtime spine.** The released gem is v0.1.0 (skeleton). The main branch contains
+> a mock runtime loop with `RLM::Lm::Mock`, `RLM::Sandbox::UnsafeInProcess`, budget enforcement, trace events,
+> recursive `predict`, and prompt building. Provider adapters, subprocess sandbox, and Rails integration remain
+> future milestones. `UnsafeInProcess` is dev/test-only and executes generated code in the host Ruby process.
 
 ## Why
 
@@ -58,7 +59,36 @@ RLM.configure do |config|
 end
 ```
 
-## Intended API (not yet executable)
+## Mock Runtime API (executable with mock LM)
+
+```ruby
+class InvoiceExtraction
+  def self.name = "InvoiceExtraction"
+  def self.description = "Extract normalized invoice fields from a vendor invoice."
+  def self.input_fields = { invoice_pdf: :file, vendor_id: :integer }
+  def self.output_fields = { vendor_name: :string, invoice_number: :string, total_cents: :integer }
+  def self.validate_input(input) = input.key?(:vendor_id) ? [] : ["vendor_id is required"]
+  def self.validate_output(output) = output.key?(:vendor_name) ? [] : ["vendor_name is required"]
+end
+
+# Mock LM for testing (no provider needed)
+lm = RLM::Lm::Mock.new(responses: ['<rlm-final>{"vendor_name":"Acme","invoice_number":"INV-001","total_cents":10000}</rlm-final>'])
+
+result = RLM.predict(
+  InvoiceExtraction,
+  input: { vendor_id: 123 },
+  lm: lm,
+  sandbox: RLM::Sandbox::UnsafeInProcess.new,  # dev/test only: executes in host process
+  limits: RLM::Limits.new(max_iterations: 8, max_llm_calls: 25)
+)
+
+result.output           # { "vendor_name" => "Acme", ... }
+result.trace            # full event stream
+result.cost_cents       # accumulated cost
+result.status           # :completed, :budget_exceeded, :failed_validation, ...
+```
+
+## Intended Production API (future milestone)
 
 ```ruby
 class InvoiceExtraction < DSPy::Signature
@@ -88,14 +118,9 @@ result = RLM.predict(
   max_llm_calls: 30,
   max_cost_cents: 150
 )
-
-result.output           # typed object
-result.trace            # readable steps, llm calls, tool calls
-result.cost_cents       # accumulated cost
-result.status           # :completed, :needs_review, :budget_exceeded, ...
 ```
 
-## What's in this skeleton today
+## What's implemented
 
 | Component | Status |
 |-----------|--------|
@@ -106,14 +131,20 @@ result.status           # :completed, :needs_review, :budget_exceeded, ...
 | `RLM::Trace` with NDJSON / JSON export | Ready |
 | `RLM::Result` with full status enum | Ready |
 | `RLM::Sandbox::Base` interface + `Mock` backend | Ready |
+| `RLM::Sandbox::UnsafeInProcess` | Ready (dev/test only, executes in host process) |
 | `RLM::Tool` base class with category DSL | Ready |
 | Error hierarchy | Ready |
-| `RLM::Predict` skeleton | Stub, raises on `#call` |
-| RubyLLM provider adapter | Not yet |
-| dspy.rb signature adapter | Not yet |
-| Runtime execution loop + recursive `predict` | Not yet |
-| `RLM::Sandbox::Subprocess` | Not yet |
-| Rails Railtie, generator, migrations, ActiveStorage adapter | Not yet |
+| `RLM::Predict#call` | Delegates to `RLM::Runtime` |
+| `RLM::Runtime` mock loop | Ready (with `RLM::Lm::Mock`) |
+| `RLM::PromptBuilder` | Ready (v0.2 contract) |
+| `RLM::CodeExtractor` | Ready |
+| `RLM::Runtime::Bridge` | Ready (shape-only, no full tool registry) |
+| Budget enforcement (`max_llm_calls`, `max_iterations`, `max_cost_cents`, `max_runtime_seconds`) | Ready |
+| Recursive `predict` + depth limit | Ready |
+| RubyLLM provider adapter | Future milestone |
+| dspy.rb signature adapter | Future milestone |
+| `RLM::Sandbox::Subprocess` | Future milestone |
+| Rails Railtie, generator, migrations, ActiveStorage adapter | Future milestone |
 
 See `docs/prd.md` for the full product spec and v0.2 milestone list.
 
@@ -199,18 +230,19 @@ Soft failures land on `result.status` instead of raising. Inspect `result.succes
 | `:provider_error` | `failed?` | RubyLLM provider failure. |
 | `:aborted` | `failed?` | Run cancelled by caller. |
 
-## Production safety (when the runtime loop ships)
+## Production safety
 
-- The subprocess sandbox planned for v0.2 is intended for local development and low-risk internal use.
-- Production deployments should use the Docker sandbox (v0.4) or a remote isolated runner.
-- Generated code must not execute inside the host Ruby process. The codebase will hold this invariant.
+- `RLM::Sandbox::UnsafeInProcess` executes generated code in the host Ruby process. It is dev/test-only and unsafe.
+- The subprocess sandbox is a future milestone for local development.
+- Production deployments should use a Docker sandbox or remote isolated runner (future milestone).
+- Generated code must not execute inside the host Ruby process in production. The codebase will hold this invariant.
 - Mounted files are data, not instructions. Prompt injection mitigations are documented in the PRD.
 
 ## Development
 
 ```bash
 bundle install
-bundle exec rake test       # 58 runs / 139 assertions / 0 failures
+bundle exec rake test       # 138 runs / 360 assertions / 0 failures
 bundle exec rubocop         # lint
 bundle exec rake            # test + rubocop
 ```
