@@ -6,6 +6,16 @@ require "rlm"
 require "minitest/autorun"
 
 module TestConfig
+  def before_setup
+    RLM.reset_configuration!
+    super
+  end
+
+  def after_teardown
+    super
+    RLM.reset_configuration!
+  end
+
   def setup_config
     RLM.reset_configuration!
   end

@@ -5,15 +5,17 @@
 
 Recursive Language Models for Ruby and Rails.
 
-RLM.rb is a Ruby/Rails-native runtime for typed, sandboxed, auditable AI jobs over large application context.
+RLM.rb is a Ruby runtime for typed, sandbox-oriented, auditable AI jobs over large application context.
 It is designed to integrate with [RubyLLM](https://github.com/crmne/ruby_llm) for provider access and [dspy.rb](https://github.com/vicentereig/dspy.rb)
-for typed signatures, and adds the missing recursive execution runtime: sandbox, REPL loop, file and context mounting,
-recursive sub-LM calls, typed final output, budget controls, and durable trajectories.
+for typed signatures in future milestones. The current v0.2 work focuses on the recursive execution spine: prompt loop,
+file and context mounting, recursive sub-LM calls, typed final output, budget controls, trace events, and a minimal
+trace persistence hook.
 
 > **Status: Unreleased v0.2 mock runtime spine.** The released gem is v0.1.0 (skeleton). The main branch contains
-> a mock runtime loop with `RLM::Lm::Mock`, `RLM::Sandbox::UnsafeInProcess`, budget enforcement, trace events,
-> recursive `predict`, and prompt building. Provider adapters, subprocess sandbox, and Rails integration remain
-> future milestones. `UnsafeInProcess` is dev/test-only and executes generated code in the host Ruby process.
+> a mock runtime loop with `RLM::Lm::Mock`, `RLM::Sandbox::UnsafeInProcess`, budget enforcement and budget policies,
+> trace events, recursive `predict`, prompt building, and a best-effort `trace_store` callable hook. Provider adapters,
+> dspy.rb adapters, subprocess/container sandboxing, and Rails integration remain future milestones. `UnsafeInProcess`
+> is dev/test-only and executes generated code in the host Ruby process.
 
 ## Why
 
@@ -131,22 +133,23 @@ result = RLM.predict(
 | `RLM::Trace` with NDJSON / JSON export | Ready |
 | `RLM::Result` with full status enum | Ready |
 | `RLM::Sandbox::Base` interface + `Mock` backend | Ready |
-| `RLM::Sandbox::UnsafeInProcess` | Ready (dev/test only, executes in host process) |
+| `RLM::Sandbox::UnsafeInProcess` | Ready for dev/test only; executes in host process and mutates global streams during serialized capture |
 | `RLM::Tool` base class with category DSL | Ready |
 | Error hierarchy | Ready |
 | `RLM::Predict#call` | Delegates to `RLM::Runtime` |
 | `RLM::Runtime` mock loop | Ready (with `RLM::Lm::Mock`) |
 | `RLM::PromptBuilder` | Ready (v0.2 contract) |
 | `RLM::CodeExtractor` | Ready |
-| `RLM::Runtime::Bridge` | Ready (shape-only, no full tool registry) |
-| Budget enforcement (`max_llm_calls`, `max_iterations`, `max_cost_cents`, `max_runtime_seconds`) | Ready |
+| `RLM::Runtime::Bridge` | Ready for runtime-owned subcalls, tools, submission, file reads, and logging |
+| Budget enforcement and policies (`max_llm_calls`, `max_sub_lm_calls`, `max_tool_calls`, `max_iterations`, `max_cost_cents`, `max_runtime_seconds`, `on_budget_exceeded`) | Ready |
+| `trace_store` callable hook | Ready (best-effort; receives terminal `RLM::Result`) |
 | Recursive `predict` + depth limit | Ready |
 | RubyLLM provider adapter | Future milestone |
 | dspy.rb signature adapter | Future milestone |
 | `RLM::Sandbox::Subprocess` | Future milestone |
 | Rails Railtie, generator, migrations, ActiveStorage adapter | Future milestone |
 
-See `docs/prd.md` for the full product spec and v0.2 milestone list.
+The table above reflects the current unreleased v0.2 implementation status.
 
 ## Rails setup (intended, lands in v0.3)
 
@@ -204,9 +207,6 @@ rescue RLM::ToolError => e
 rescue RLM::ParseError => e
   # Root LM response could not be parsed into <rlm-code>/<rlm-final>.
   raise
-rescue RLM::NoProgressError => e
-  # The model emitted no new progress across iterations.
-  raise
 rescue RLM::ConfigurationError => e
   # Missing signature, missing root LM, invalid sandbox, etc.
   raise
@@ -217,14 +217,16 @@ end
 ```
 
 Soft failures land on `result.status` instead of raising. Inspect `result.success?`, `result.needs_review?`,
-`result.failed?`, and `result.validation_errors` to branch.
+`result.failed?`, and `result.validation_errors` to branch. Budget handling honors `limits.on_budget_exceeded`:
+`:fail` returns `:budget_exceeded`, `:needs_review` returns `:needs_review`, and `:return_partial` returns
+`:needs_review` only when a valid submitted output already exists; otherwise it fails as `:budget_exceeded`.
 
 | Status | Predicate | Meaning |
 |--------|-----------|---------|
 | `:completed` | `success?` | Output valid, ready to use. |
-| `:needs_review` | `needs_review?` | Output present but validation flagged it or budget policy is `:needs_review`. |
-| `:failed_validation` | `failed?` | Output invalid after repair attempts. |
-| `:budget_exceeded` | `failed?` | Hit a hard limit and policy is `:fail`. |
+| `:needs_review` | `needs_review?` | Budget policy requested review, optionally with a valid submitted partial output. |
+| `:failed_validation` | `failed?` | Output invalid after validation. |
+| `:budget_exceeded` | `failed?` | Hit a hard limit with `:fail`, or `:return_partial` had no valid submitted output. |
 | `:sandbox_error` | `failed?` | Sandbox violation or crash. |
 | `:tool_error` | `failed?` | Tool raised or returned invalid output. |
 | `:provider_error` | `failed?` | RubyLLM provider failure. |
@@ -233,16 +235,18 @@ Soft failures land on `result.status` instead of raising. Inspect `result.succes
 ## Production safety
 
 - `RLM::Sandbox::UnsafeInProcess` executes generated code in the host Ruby process. It is dev/test-only and unsafe.
+- `UnsafeInProcess` captures `$stdout`/`$stderr` by mutating process-global streams; capture is serialized with a mutex,
+  but the sandbox remains unsuitable for production and should not be treated as concurrency-safe isolation.
 - The subprocess sandbox is a future milestone for local development.
-- Production deployments should use a Docker sandbox or remote isolated runner (future milestone).
+- Production deployments should use a container sandbox or remote isolated runner (future milestone).
 - Generated code must not execute inside the host Ruby process in production. The codebase will hold this invariant.
-- Mounted files are data, not instructions. Prompt injection mitigations are documented in the PRD.
+- Mounted files are data, not instructions; generated code should treat file contents as untrusted input.
 
 ## Development
 
 ```bash
 bundle install
-bundle exec rake test       # 138 runs / 360 assertions / 0 failures
+bundle exec rake test       # run the test suite
 bundle exec rubocop         # lint
 bundle exec rake            # test + rubocop
 ```
@@ -253,7 +257,7 @@ Issues and pull requests welcome at https://github.com/dpaluy/rlm.
 
 ## API reference
 
-RLM.rb sits on top of two upstream libraries. When you need provider or signature details, go to source:
+RLM.rb is designed to integrate with these upstream libraries in future milestones. For provider or signature details, go to source:
 
 - [RubyLLM](https://github.com/crmne/ruby_llm), [Rails integration guide](https://rubyllm.com/rails/) for provider/chat/file API.
 - [dspy.rb](https://github.com/vicentereig/dspy.rb), [Signatures guide](https://vicentereig.github.io/dspy.rb/core-concepts/signatures/) for typed input/output contracts.

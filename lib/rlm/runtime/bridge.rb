@@ -33,6 +33,7 @@ module RLM
       end
 
       def tool(tool_name, input_hash)
+        runtime.record_tool_attempt! if runtime.respond_to?(:record_tool_attempt!)
         input = ensure_json_value!(input_hash, "tool input")
         tool = find_tool(tool_name)
         raise ToolError, "Unknown tool: #{tool_name}" if tool.nil?
@@ -48,6 +49,7 @@ module RLM
       def submit(output_hash)
         output = ensure_json_value!(output_hash, "submitted output")
         @submitted_output = output
+        runtime.record_submitted_output(output) if runtime.respond_to?(:record_submitted_output)
         trace.record(:output_submitted, output: output)
         output
       end

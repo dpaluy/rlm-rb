@@ -18,13 +18,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `RLM::Signature` protocol helpers for runtime-independent signature validation.
 - `RLM::Sandbox::UnsafeInProcess` for dev/test-only runtime-spine integration tests.
 - `RLM::Runtime` mock execution loop with prompt building, LM calls, code/final extraction,
-  sandbox execution, recursive subcalls, validation, budget failure, and `RLM::Result` output.
+  sandbox execution, recursive subcalls, validation, budget policies, and `RLM::Result` output.
 - `RLM::Predict#call` now delegates to the runtime spine.
-- Budget enforcement expanded to `max_cost_cents` and `max_runtime_seconds`.
+- Budget enforcement expanded to `max_sub_lm_calls`, `max_tool_calls`, `max_cost_cents`, and `max_runtime_seconds`.
+- Budget policies are honored: `:fail`, `:needs_review`, and conservative `:return_partial` when a valid submitted
+  output already exists.
+- `trace_store` is forwarded into runtime as a best-effort callable hook receiving the terminal `RLM::Result`.
+- `RLM::ToolError` is preserved through sandbox execution and reported as `status: :tool_error`.
 - Trace event completeness: `:budget_checked` recorded at all budget checks, `:run_failed` recorded on all failure paths.
 - PromptBuilder v0.2 contract: signature description, input/output fields, available helpers, safety instructions.
 - Parse failures are deterministic and fail-closed (deferred repair attempts to future milestone).
 - Sandbox cleanup proven across all failure modes (success, validation, parse, provider, budget, sandbox errors).
+- `RLM::Sandbox::UnsafeInProcess` serializes process-global stream capture with a mutex while remaining dev/test-only
+  and unsuitable for production isolation.
 
 ## [0.1.0] - 2026-05-12
 

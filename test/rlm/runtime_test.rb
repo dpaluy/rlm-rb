@@ -19,6 +19,7 @@ module RuntimeTraceAssertions
       code_generated
       validation_attempted
       budget_checked
+      budget_checked
       sub_lm_called
       budget_checked
       validation_attempted
@@ -94,6 +95,7 @@ module RuntimeTraceAssertions
   end
 end
 
+# rubocop:disable Metrics/ClassLength
 class RLM::RuntimeTest < Minitest::Test
   include RuntimeTraceAssertions
 
@@ -134,6 +136,12 @@ class RLM::RuntimeTest < Minitest::Test
     def self.output_fields = { summary: :string }
     def self.validate_input(input) = input.key?(:text) || input.key?("text") ? [] : ["text is required"]
     def self.validate_output(output) = output.key?(:summary) || output.key?("summary") ? [] : ["summary is required"]
+  end
+
+  FailingTool = Class.new(RLM::Tool) do
+    def call
+      raise RLM::ToolError, "tool boom"
+    end
   end
 
   def test_runs_code_response_through_sandbox_and_returns_submitted_output
@@ -182,7 +190,7 @@ class RLM::RuntimeTest < Minitest::Test
       sub_lm: sub_lm,
       sandbox: sandbox,
       signatures: [SubSignature],
-      limits: RLM::Limits.new(max_iterations: 2, max_llm_calls: 1)
+      limits: RLM::Limits.new(max_iterations: 2, max_llm_calls: 1, on_budget_exceeded: :fail)
     )
 
     assert_budget_exhaustion_result(result)
@@ -240,7 +248,7 @@ class RLM::RuntimeTest < Minitest::Test
       input: { text: "hello" },
       lm: lm,
       sandbox: sandbox,
-      limits: RLM::Limits.new(max_llm_calls: 0)
+      limits: RLM::Limits.new(max_llm_calls: 0, on_budget_exceeded: :fail)
     )
 
     assert_equal :budget_exceeded, result.status
@@ -282,7 +290,7 @@ class RLM::RuntimeTest < Minitest::Test
       input: { text: "hello" },
       lm: lm,
       sandbox: sandbox,
-      limits: RLM::Limits.new(max_cost_cents: 100)
+      limits: RLM::Limits.new(max_cost_cents: 100, on_budget_exceeded: :fail)
     )
 
     assert_equal :budget_exceeded, result.status
@@ -299,7 +307,7 @@ class RLM::RuntimeTest < Minitest::Test
       input: { text: "hello" },
       lm: lm,
       sandbox: sandbox,
-      limits: RLM::Limits.new(max_output_bytes: 10)
+      limits: RLM::Limits.new(max_output_bytes: 10, on_budget_exceeded: :fail)
     )
 
     assert_equal :budget_exceeded, result.status
@@ -320,7 +328,7 @@ class RLM::RuntimeTest < Minitest::Test
       lm: lm,
       sandbox: sandbox,
       signatures: [SubSignature],
-      limits: RLM::Limits.new(max_stdout_bytes: 10)
+      limits: RLM::Limits.new(max_stdout_bytes: 10, on_budget_exceeded: :fail)
     )
 
     assert_equal :budget_exceeded, result.status
@@ -340,7 +348,7 @@ class RLM::RuntimeTest < Minitest::Test
       input: { text: "hello" },
       lm: lm,
       sandbox: sandbox,
-      limits: RLM::Limits.new(max_runtime_seconds: 0),
+      limits: RLM::Limits.new(max_runtime_seconds: 0, on_budget_exceeded: :fail),
       context: RLM::Context.new(inputs: { text: "hello" })
     )
 
@@ -371,6 +379,133 @@ class RLM::RuntimeTest < Minitest::Test
     assert sandbox.cleanup_called
   end
 
+  def test_max_sub_lm_calls_blocks_recursive_subcalls
+    lm = RLM::Lm::Mock.new(responses: [root_code_response])
+    sub_lm = RLM::Lm::Mock.new(responses: ['<rlm-final>{"summary":"sub ok"}</rlm-final>'])
+
+    result = RLM.predict(
+      RootSignature,
+      input: { text: "hello" },
+      lm: lm,
+      sub_lm: sub_lm,
+      sandbox: tracking_sandbox,
+      signatures: [SubSignature],
+      limits: RLM::Limits.new(max_llm_calls: 2, max_sub_lm_calls: 0, on_budget_exceeded: :fail)
+    )
+
+    assert_equal :budget_exceeded, result.status
+    assert_includes result.error.message, "max_sub_lm_calls"
+    assert_equal 1, result.llm_calls
+  end
+
+  def test_max_tool_calls_blocks_tool_attempts
+    lm = RLM::Lm::Mock.new(responses: [tool_code_response])
+
+    result = RLM.predict(
+      RootSignature,
+      input: { text: "hello" },
+      lm: lm,
+      sandbox: tracking_sandbox,
+      tools: [FailingTool.new],
+      limits: RLM::Limits.new(max_tool_calls: 0, on_budget_exceeded: :fail)
+    )
+
+    assert_equal :budget_exceeded, result.status
+    assert_includes result.error.message, "max_tool_calls"
+  end
+
+  def test_budget_policy_needs_review_returns_needs_review_without_output
+    result = RLM.predict(
+      RootSignature,
+      input: { text: "hello" },
+      lm: RLM::Lm::Mock.new(responses: ['<rlm-final>{"summary":"done"}</rlm-final>']),
+      sandbox: tracking_sandbox,
+      limits: RLM::Limits.new(max_llm_calls: 0, on_budget_exceeded: :needs_review)
+    )
+
+    assert_equal :needs_review, result.status
+    refute result.failed?
+    assert_nil result.output
+  end
+
+  def test_return_partial_uses_valid_submitted_output_as_needs_review
+    lm = RLM::Lm::Mock.new(responses: [submit_then_budget_code_response])
+
+    result = RLM.predict(
+      RootSignature,
+      input: { text: "hello" },
+      lm: lm,
+      sandbox: tracking_sandbox,
+      limits: RLM::Limits.new(max_tool_calls: 0, on_budget_exceeded: :return_partial)
+    )
+
+    assert_equal :needs_review, result.status
+    assert_equal({ "summary" => "partial" }, result.output)
+  end
+
+  def test_return_partial_without_valid_output_falls_back_to_budget_exceeded
+    result = RLM.predict(
+      RootSignature,
+      input: { text: "hello" },
+      lm: RLM::Lm::Mock.new(responses: ['<rlm-final>{"summary":"done"}</rlm-final>']),
+      sandbox: tracking_sandbox,
+      limits: RLM::Limits.new(max_llm_calls: 0, on_budget_exceeded: :return_partial)
+    )
+
+    assert_equal :budget_exceeded, result.status
+    assert_nil result.output
+  end
+
+  def test_tool_error_preserves_status_and_error
+    lm = RLM::Lm::Mock.new(responses: [tool_code_response])
+
+    result = RLM.predict(
+      RootSignature,
+      input: { text: "hello" },
+      lm: lm,
+      sandbox: tracking_sandbox,
+      tools: [FailingTool.new]
+    )
+
+    assert_equal :tool_error, result.status
+    assert_instance_of RLM::ToolError, result.error
+    assert_includes result.error.message, "tool boom"
+  end
+
+  def test_trace_store_receives_terminal_success_result
+    stored = []
+
+    result = RLM::Runtime.new(
+      signature: RootSignature,
+      input: { text: "hello" },
+      lm: RLM::Lm::Mock.new(responses: ['<rlm-final>{"summary":"done"}</rlm-final>']),
+      sandbox: tracking_sandbox,
+      limits: RLM::Limits.new,
+      trace_store: ->(stored_result) { stored << stored_result }
+    ).call
+
+    assert_equal :completed, result.status
+    assert_equal [result], stored
+    assert_equal :run_completed, stored.first.trace.events.last[:type]
+  end
+
+  def test_trace_store_receives_terminal_failure_result
+    stored = []
+
+    result = RLM::Runtime.new(
+      signature: RootSignature,
+      input: { text: "hello" },
+      lm: RLM::Lm::Mock.new(responses: ["not a trace block"]),
+      sandbox: tracking_sandbox,
+      limits: RLM::Limits.new,
+      trace_store: ->(stored_result) { stored << stored_result }
+    ).call
+
+    assert_equal :aborted, result.status
+    assert_equal [result], stored
+    assert_equal :run_failed, stored.first.trace.events.last[:type]
+  end
+
   private
 
   def tracking_sandbox(exec_result: nil)
@@ -385,4 +520,22 @@ class RLM::RuntimeTest < Minitest::Test
       </rlm-code>
     RESPONSE
   end
+
+  def tool_code_response
+    <<~RESPONSE
+      <rlm-code>
+        tool("FailingTool", {})
+      </rlm-code>
+    RESPONSE
+  end
+
+  def submit_then_budget_code_response
+    <<~RESPONSE
+      <rlm-code>
+        submit({ "summary" => "partial" })
+        tool("MissingTool", {})
+      </rlm-code>
+    RESPONSE
+  end
 end
+# rubocop:enable Metrics/ClassLength

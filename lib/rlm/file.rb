@@ -85,7 +85,7 @@ module RLM
       when :path then ::File.read(source[:path])
       when :text, :io then source[:text]
       when :active_storage then source[:blob].download
-      else raise SandboxError, "Unknown file source kind: #{source[:kind].inspect}"
+      else raise ConfigurationError, "Unknown file source kind: #{source[:kind].inspect}"
       end
     end
 

@@ -26,6 +26,19 @@ class RLM::Runtime::BridgeTest < Minitest::Test
     end
   end
 
+  AccountingRuntime = Struct.new(:attempts, :raise_budget) do
+    def record_tool_attempt!
+      self.attempts += 1
+      raise RLM::BudgetExceededError, "max_tool_calls exceeded" if raise_budget
+    end
+
+    def record_submitted_output(output)
+      @submitted_output = output
+    end
+
+    attr_reader :submitted_output
+  end
+
   FakeSignature = Class.new do
     def self.name
       "FakeSignature"
@@ -137,6 +150,38 @@ class RLM::Runtime::BridgeTest < Minitest::Test
     assert_raises(RLM::ToolError) do
       bridge.tool("WriteTool", {})
     end
+  end
+
+  def test_tool_delegates_attempt_accounting_before_lookup
+    runtime = AccountingRuntime.new(0, false)
+    bridge = build_bridge(runtime: runtime)
+
+    assert_raises(RLM::ToolError) do
+      bridge.tool("MissingTool", {})
+    end
+
+    assert_equal 1, runtime.attempts
+  end
+
+  def test_tool_budget_error_skips_lookup_and_execution
+    runtime = AccountingRuntime.new(0, true)
+    bridge = build_bridge(runtime: runtime, tools: [LookupVendor.new])
+
+    error = assert_raises(RLM::BudgetExceededError) do
+      bridge.tool("LookupVendor", { vendor_id: 7 })
+    end
+
+    assert_includes error.message, "max_tool_calls"
+    assert_equal 1, runtime.attempts
+  end
+
+  def test_submit_forwards_output_to_runtime
+    runtime = AccountingRuntime.new(0, false)
+    bridge = build_bridge(runtime: runtime)
+
+    bridge.submit({ total: 12 })
+
+    assert_equal({ total: 12 }, runtime.submitted_output)
   end
 
   def test_predict_routes_recursive_subcall_and_records_trace

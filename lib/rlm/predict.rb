@@ -42,7 +42,8 @@ module RLM
         sandbox: sandbox,
         limits: limits,
         validators: validators,
-        signatures: signatures
+        signatures: signatures,
+        trace_store: trace_store
       ).call
     end
   end

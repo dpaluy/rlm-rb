@@ -35,7 +35,7 @@ module RLM
       sections << helpers_section
       sections << safety_section
       sections << output_instructions_section
-      sections.join("\n\n")
+      sections.compact.join("\n\n")
     end
 
     private

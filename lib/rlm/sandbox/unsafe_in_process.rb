@@ -6,13 +6,16 @@
 # It provides no process isolation, memory isolation, filesystem isolation, network isolation,
 # timeout enforcement, or protection from malicious code. Use it only in development/tests to
 # prove the runtime spine. Production backends must use isolated subprocess, container, or remote
-# runners instead.
+# runners instead. Stream capture mutates process-global $stdout/$stderr, so this class
+# serializes execution with a mutex; it is still not a concurrency-safe production sandbox.
 
 require "stringio"
 
 module RLM
   module Sandbox
     class UnsafeInProcess < Base
+      STREAM_CAPTURE_MUTEX = Mutex.new
+
       attr_reader :context, :tools, :skills, :runtime_bridge
 
       def initialize
@@ -60,17 +63,19 @@ module RLM
       private
 
       def capture_streams
-        old_stdout = $stdout
-        old_stderr = $stderr
-        captured_stdout = StringIO.new
-        captured_stderr = StringIO.new
-        $stdout = captured_stdout
-        $stderr = captured_stderr
-        yield
-        [captured_stdout.string, captured_stderr.string]
-      ensure
-        $stdout = old_stdout
-        $stderr = old_stderr
+        STREAM_CAPTURE_MUTEX.synchronize do
+          old_stdout = $stdout
+          old_stderr = $stderr
+          captured_stdout = StringIO.new
+          captured_stderr = StringIO.new
+          $stdout = captured_stdout
+          $stderr = captured_stderr
+          yield
+          [captured_stdout.string, captured_stderr.string]
+        ensure
+          $stdout = old_stdout
+          $stderr = old_stderr
+        end
       end
 
       class Scope

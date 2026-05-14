@@ -80,4 +80,15 @@ class RLM::FileTest < Minitest::Test
       file.to_h
     )
   end
+
+  def test_read_rejects_unknown_internal_source_kind
+    file = RLM::File.new(
+      filename: "bad.txt",
+      content_type: "text/plain",
+      size_bytes: 0,
+      source: { kind: :unknown }
+    )
+
+    assert_raises(RLM::ConfigurationError) { file.read }
+  end
 end

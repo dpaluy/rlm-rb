@@ -15,6 +15,7 @@ require_relative "signature"
 require_relative "trace"
 
 module RLM
+  # rubocop:disable Metrics/ClassLength
   class Runtime
     def initialize(
       signature:,
@@ -28,7 +29,8 @@ module RLM
       skills: [],
       validators: [],
       signatures: [],
-      depth: 0
+      depth: 0,
+      trace_store: nil
     )
       @signature = signature
       @input = input || {}
@@ -42,9 +44,13 @@ module RLM
       @validators = Array(validators)
       @signatures = SignatureRegistry.build(signature, signatures)
       @depth = depth
+      @trace_store = trace_store
       @trace = Trace.new
       @iterations = 0
       @llm_calls = 0
+      @sub_lm_calls = 0
+      @tool_calls = 0
+      @last_submitted_output = nil
     end
 
     def call
@@ -54,7 +60,9 @@ module RLM
       bridge = prepare_sandbox
       run_loop(bridge)
     rescue BudgetExceededError => e
-      finish(:budget_exceeded, error: e)
+      budget_exceeded_result(e)
+    rescue ToolError => e
+      finish(:tool_error, error: e)
     rescue ProviderError => e
       finish(:provider_error, error: e)
     rescue SandboxError => e
@@ -78,11 +86,22 @@ module RLM
       parsed.content
     end
 
+    def record_tool_attempt!
+      trace.record(:budget_checked, budget: :tool_calls, current: @tool_calls, limit: limits.max_tool_calls)
+      raise BudgetExceededError, "max_tool_calls exceeded" if @tool_calls >= limits.max_tool_calls
+
+      @tool_calls += 1
+    end
+
+    def record_submitted_output(output)
+      @last_submitted_output = output
+    end
+
     private
 
     attr_reader :signature, :input, :lm, :sub_lm, :context, :tools, :skills,
                 :sandbox, :limits, :validators, :signatures, :depth, :trace,
-                :iterations, :llm_calls
+                :iterations, :llm_calls, :sub_lm_calls, :trace_store
 
     def start_run
       trace.record(:run_started, signature: Signature.name_for(signature), input: input)
@@ -123,8 +142,10 @@ module RLM
 
     def call_sub_lm(checked_signature, payload, sub_depth)
       ensure_llm_budget!
+      ensure_sub_lm_budget!
       prompt = PromptBuilder.build(checked_signature, input: payload, context: context, limits: limits)
       response = call_lm(sub_lm, :sub_lm_called, checked_signature, prompt, sub_depth)
+      @sub_lm_calls += 1
       CodeExtractor.extract(response)
     end
 
@@ -156,10 +177,13 @@ module RLM
 
     def handle_sandbox_result!(result)
       return if result.ok?
-      raise result.error if result.error.is_a?(BudgetExceededError)
-      raise result.error if result.error.is_a?(ParseError)
 
-      raise SandboxError, result.error&.message || result.stderr || "sandbox execution failed"
+      case result.error
+      when BudgetExceededError, ParseError, ToolError
+        raise result.error
+      else
+        raise SandboxError, result.error&.message || result.stderr || "sandbox execution failed"
+      end
     end
 
     def complete(output)
@@ -212,7 +236,7 @@ module RLM
     def finish(status, output: nil, error: nil, validation_errors: [])
       record_run_failed(status, error:, validation_errors:) unless status == :completed
 
-      Result.new(
+      result = Result.new(
         trace: trace,
         status: status,
         output: output,
@@ -223,11 +247,18 @@ module RLM
         iterations: iterations,
         validation_errors: validation_errors
       )
+      persist_trace(result)
+      result
     end
 
     def ensure_llm_budget!
       trace.record(:budget_checked, budget: :llm_calls, current: llm_calls, limit: limits.max_llm_calls)
       raise BudgetExceededError, "max_llm_calls exceeded" if llm_calls >= limits.max_llm_calls
+    end
+
+    def ensure_sub_lm_budget!
+      trace.record(:budget_checked, budget: :sub_lm_calls, current: sub_lm_calls, limit: limits.max_sub_lm_calls)
+      raise BudgetExceededError, "max_sub_lm_calls exceeded" if sub_lm_calls >= limits.max_sub_lm_calls
     end
 
     def ensure_cost_budget!
@@ -253,6 +284,38 @@ module RLM
       current_bytes = result.stdout.to_s.bytesize
       trace.record(:budget_checked, budget: :stdout_bytes, current: current_bytes, limit: limits.max_stdout_bytes)
       raise BudgetExceededError, "max_stdout_bytes exceeded" if current_bytes > limits.max_stdout_bytes
+    end
+
+    def budget_exceeded_result(error)
+      case limits.on_budget_exceeded
+      when :needs_review
+        finish(:needs_review, output: valid_last_submitted_output, error: error)
+      when :return_partial
+        output = valid_last_submitted_output
+        return finish(:needs_review, output: output, error: error) unless output.nil?
+
+        finish(:budget_exceeded, error: error)
+      else
+        finish(:budget_exceeded, error: error)
+      end
+    end
+
+    def valid_last_submitted_output
+      return if @last_submitted_output.nil?
+      return if validate_output(signature, @last_submitted_output).any?
+
+      ensure_output_budget!(@last_submitted_output)
+      @last_submitted_output
+    rescue BudgetExceededError
+      nil
+    end
+
+    def persist_trace(result)
+      return unless trace_store.respond_to?(:call)
+
+      trace_store.call(result)
+    rescue StandardError
+      nil
     end
 
     def record_run_failed(status, error:, validation_errors: [])
@@ -282,4 +345,5 @@ module RLM
       Context.new(inputs: payload, files: payload.values.grep(RLM::File))
     end
   end
+  # rubocop:enable Metrics/ClassLength
 end

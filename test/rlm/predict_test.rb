@@ -52,4 +52,24 @@ class RLM::PredictTest < Minitest::Test
     assert result.success?
     assert_equal({ "ok" => true }, result.output)
   end
+
+  def test_explicit_trace_store_reaches_runtime
+    stored = []
+    lm = RLM::Lm::Mock.new(responses: ['<rlm-final>{"ok":true}</rlm-final>'])
+    predictor = RLM::Predict.new(FakeSignature, lm: lm, trace_store: ->(result) { stored << result })
+
+    result = predictor.call({})
+
+    assert_equal [result], stored
+  end
+
+  def test_configured_trace_store_reaches_runtime
+    stored = []
+    RLM.config.trace_store = ->(result) { stored << result }
+    RLM.config.root_lm = RLM::Lm::Mock.new(responses: ['<rlm-final>{"ok":true}</rlm-final>'])
+
+    result = RLM::Predict.new(FakeSignature).call({})
+
+    assert_equal [result], stored
+  end
 end

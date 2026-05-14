@@ -88,6 +88,17 @@ class RLM::Sandbox::UnsafeInProcessTest < Minitest::Test
     assert_includes result.stderr, "boom"
   end
 
+  def test_restores_global_streams_after_runtime_errors
+    sandbox = prepared_sandbox
+    original_stdout = $stdout
+    original_stderr = $stderr
+
+    sandbox.exec('$stdout.puts "before"; raise "boom"')
+
+    assert_same original_stdout, $stdout
+    assert_same original_stderr, $stderr
+  end
+
   def test_cleanup_resets_prepared_state
     sandbox = prepared_sandbox
     sandbox.cleanup
