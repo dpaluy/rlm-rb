@@ -1,0 +1,113 @@
+# frozen_string_literal: true
+
+require "json"
+
+class CappedStream
+  attr_reader :truncated
+
+  def initialize(limit)
+    @limit = limit
+    @buffer = +""
+    @truncated = false
+  end
+
+  def write(value)
+    value = value.to_s
+    remaining = @limit - @buffer.bytesize
+    @buffer << value.byteslice(0, remaining).to_s if remaining.positive?
+    @truncated = true if value.bytesize > remaining
+    value.bytesize
+  end
+
+  def puts(*values)
+    values = [""] if values.empty?
+    values.each { |value| write("#{value}\n") }
+  end
+
+  def string
+    return @buffer unless @truncated
+
+    "#{@buffer}\n[truncated]"
+  end
+end
+
+class RemoteError < StandardError
+  attr_reader :remote_class
+
+  def initialize(remote_class, message)
+    @remote_class = remote_class
+    super(message)
+  end
+end
+
+class Protocol
+  def initialize(input:, output:)
+    @input = input
+    @output = output
+    @next_id = 0
+  end
+
+  def call(method, args)
+    id = next_id
+    @output.puts(JSON.generate(type: "call", id: id, method: method, args: args))
+    @output.flush
+
+    response = JSON.parse(@input.gets)
+    raise "subprocess protocol response mismatch" unless response["id"] == id
+    raise RemoteError.new(response["error_class"], response["message"]) unless response["ok"]
+
+    response["result"]
+  end
+
+  private
+
+  def next_id
+    @next_id += 1
+  end
+end
+
+class Scope
+  def initialize(protocol)
+    @protocol = protocol
+  end
+
+  def predict(signature_name, input_hash) = @protocol.call("predict", [signature_name, input_hash])
+  def tool(tool_name, input_hash) = @protocol.call("tool", [tool_name, input_hash])
+  def submit(output_hash) = @protocol.call("submit", [output_hash])
+  def read_file(handle) = @protocol.call("read_file", [handle])
+  def list_files = @protocol.call("list_files", [])
+  def log(message) = @protocol.call("log", [message])
+end
+
+protocol = Protocol.new(input: STDIN, output: STDOUT)
+captured_stdout = CappedStream.new(STDOUT_LIMIT_BYTES)
+captured_stderr = CappedStream.new(STDERR_LIMIT_BYTES)
+old_stdout = $stdout
+old_stderr = $stderr
+$stdout = captured_stdout
+$stderr = captured_stderr
+
+begin
+  Scope.new(protocol).instance_eval(ENV.fetch("RLM_SUBPROCESS_CODE"), "(rlm subprocess sandbox)")
+  status = :ok
+  error_class = nil
+  message = nil
+rescue Exception => e # rubocop:disable Lint/RescueException
+  status = :error
+  error_class = e.respond_to?(:remote_class) ? e.remote_class : e.class.name
+  message = e.message
+  captured_stderr.puts("#{e.class}: #{e.message}")
+ensure
+  $stdout = old_stdout
+  $stderr = old_stderr
+end
+
+STDOUT.puts(JSON.generate(
+  type: "done",
+  status: status,
+  stdout: captured_stdout.string,
+  stderr: captured_stderr.string,
+  error_class: error_class,
+  message: message
+))
+STDOUT.flush

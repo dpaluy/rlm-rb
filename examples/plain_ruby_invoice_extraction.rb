@@ -56,8 +56,7 @@ RLM.configure do |config|
   config.root_lm = RLM::Lm::RubyLLM.new(model: root_model)
   config.sub_lm = RLM::Lm::RubyLLM.new(model: sub_model)
 
-  # Dev/test only: UnsafeInProcess runs generated Ruby code in this host process.
-  config.sandbox = RLM::Sandbox::UnsafeInProcess.new
+  config.sandbox = RLM::Sandbox::Subprocess.new(timeout_seconds: 10)
 end
 
 signature = RLM::Signature::Dspy.new(InvoiceExtraction)

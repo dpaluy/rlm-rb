@@ -12,10 +12,11 @@ recursive execution spine: prompt loop, file and context mounting, recursive sub
 controls, trace events, a RubyLLM LM adapter, a dspy signature adapter, and a minimal trace persistence hook.
 
 > **Status: Plain Ruby adapter milestone.** The released gem is v0.2.0. It includes `RLM::Lm::RubyLLM`,
-> `RLM::Signature::Dspy`, `RLM::Lm::Mock`, `RLM::Sandbox::UnsafeInProcess`, budget enforcement and budget policies,
-> trace events, recursive `predict`, prompt building, and a best-effort `trace_store` callable hook.
-> Rails integration, subprocess/container sandboxing, tools, skills, cache, telemetry, and evals remain future
-> milestones. `UnsafeInProcess` is dev/test-only and executes generated code in the host Ruby process.
+> `RLM::Signature::Dspy`, `RLM::Lm::Mock`, `RLM::Sandbox::Subprocess`, `RLM::Sandbox::UnsafeInProcess`,
+> budget enforcement and budget policies, trace events, recursive `predict`, prompt building, and a best-effort
+> `trace_store` callable hook. Rails integration, container/remote sandboxing, tools, skills, cache, telemetry,
+> and evals remain future milestones. `UnsafeInProcess` is dev/test-only and executes generated code in the host
+> Ruby process.
 
 ## Why
 
@@ -50,7 +51,7 @@ RLM.configure do |config|
   config.root_lm = RLM::Lm::RubyLLM.new(model: "gpt-5-mini")
   config.sub_lm = RLM::Lm::RubyLLM.new(model: "gpt-5-mini")
 
-  config.sandbox = RLM::Sandbox::Mock.new
+  config.sandbox = RLM::Sandbox::Subprocess.new(timeout_seconds: 10)
 
   config.default_limits = RLM::Limits.new(
     max_iterations: 8,
@@ -90,7 +91,7 @@ end
 RLM.configure do |config|
   config.root_lm = RLM::Lm::RubyLLM.new(model: "gpt-5-mini")
   config.sub_lm = RLM::Lm::RubyLLM.new(model: "gpt-5-mini")
-  config.sandbox = RLM::Sandbox::UnsafeInProcess.new # dev/test only
+  config.sandbox = RLM::Sandbox::Subprocess.new(timeout_seconds: 10)
 end
 
 signature = RLM::Signature::Dspy.new(InvoiceExtraction)
@@ -136,9 +137,9 @@ The example uses `RLM::Lm::RubyLLM` for root and sub-LM calls, wraps a real `DSP
 and usage payloads when RubyLLM exposes them. Set `RLM_EXAMPLE_MODEL` and `RLM_EXAMPLE_SUB_MODEL` to override the
 default model.
 
-The live example uses `RLM::Sandbox::UnsafeInProcess`, which is dev/test-only and runs generated Ruby code in the host
-process. Rails integration, subprocess/container sandboxing, tools, skills, evals, telemetry, and production execution
-examples remain future milestones.
+The live example uses `RLM::Sandbox::Subprocess`, which runs generated Ruby in a separate local Ruby process and
+proxies runtime helpers back to the parent runtime. Rails integration, container/remote sandboxing, tools, skills,
+evals, telemetry, and production execution examples remain future milestones.
 
 ## Mock Runtime API
 
@@ -198,6 +199,7 @@ Rails integration is not yet implemented. Rails remains a v2 milestone tracked i
 | `RLM::Trace` with NDJSON / JSON export | Ready |
 | `RLM::Result` with full status enum | Ready |
 | `RLM::Sandbox::Base` interface + `Mock` backend | Ready |
+| `RLM::Sandbox::Subprocess` | Ready for local process isolation; supports timeout, stdout/stderr capture and caps, exit status capture, tempdir cleanup, and bridge-proxied helper calls |
 | `RLM::Sandbox::UnsafeInProcess` | Ready for dev/test only; executes in host process and mutates global streams during serialized capture |
 | `RLM::Tool` base class with category DSL | Ready |
 | Error hierarchy | Ready |
@@ -212,7 +214,6 @@ Rails integration is not yet implemented. Rails remains a v2 milestone tracked i
 | `RLM::Lm::RubyLLM` provider adapter | Ready |
 | `RLM::Signature::Dspy` signature adapter | Ready |
 | Trace usage metadata for RubyLLM calls | Ready |
-| `RLM::Sandbox::Subprocess` | Future milestone |
 | Rails Railtie, generator, migrations, ActiveStorage adapter | Future milestone |
 
 The table above reflects the current unreleased plain Ruby adapter implementation status.
@@ -227,8 +228,8 @@ RLM.configure do |config|
   config.root_lm = RLM::Lm::RubyLLM.new(model: Rails.application.credentials.dig(:rlm, :root_model))
   config.sub_lm = RLM::Lm::RubyLLM.new(model: Rails.application.credentials.dig(:rlm, :sub_model))
 
-  config.sandbox = RLM::Sandbox::Subprocess.new   # development
-  # config.sandbox = RLM::Sandbox::Docker.new     # production (v0.4)
+  config.sandbox = RLM::Sandbox::Subprocess.new(timeout_seconds: 10)
+  # config.sandbox = RLM::Sandbox::Docker.new     # future production hardening
 
   config.cache  = Rails.cache
   config.logger = Rails.logger
@@ -303,7 +304,10 @@ Soft failures land on `result.status` instead of raising. Inspect `result.succes
 - `RLM::Sandbox::UnsafeInProcess` executes generated code in the host Ruby process. It is dev/test-only and unsafe.
 - `UnsafeInProcess` captures `$stdout`/`$stderr` by mutating process-global streams; capture is serialized with a mutex,
   but the sandbox remains unsuitable for production and should not be treated as concurrency-safe isolation.
-- The subprocess sandbox is a future milestone for local development.
+- `RLM::Sandbox::Subprocess` runs generated Ruby in a separate local process, enforces a wall-clock timeout, captures
+  stdout/stderr, records exit status, and removes its temp directory during cleanup.
+- Subprocess helper calls (`predict`, `tool`, `submit`, `read_file`, `list_files`, `log`) are proxied to the parent
+  runtime over a narrow JSON-line protocol; mounted subprocess working-directory files remain a future milestone.
 - Production deployments should use a container sandbox or remote isolated runner (future milestone).
 - Generated code must not execute inside the host Ruby process in production. The codebase will hold this invariant.
 - Mounted files are data, not instructions; generated code should treat file contents as untrusted input.
