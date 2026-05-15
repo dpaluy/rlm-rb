@@ -146,5 +146,5 @@ Plain Ruby hashes are supported. Cache objects that respond to `fetch` and `writ
 `rlm.lm_call` spans. Without a tracer, it is a no-op. If `opentelemetry-api` is present and configured, the default
 telemetry object uses `OpenTelemetry.tracer_provider.tracer("rlm-rb")`.
 
-When `ActiveSupport::Notifications` is already loaded, the same `rlm.run` and `rlm.lm_call` names are emitted as
-notifications with the span attributes as payload. RLM does not require ActiveSupport or Rails.
+When `ActiveSupport::Notifications` is already loaded, the same names are emitted as notifications. Use
+`RLM::Telemetry::Dspy` to send RLM spans through dspy observability, including Langfuse when dspy is configured for it.

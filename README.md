@@ -101,7 +101,7 @@ executes generated code in the host process and is only for dev/test.
 | `RLM::TraceStore` / `RLM::TraceStore::Memory` | Ready for plain Ruby in-memory storage |
 | `RLM::Review` / `RLM::Review::MemoryQueue` | Ready for plain Ruby review routing |
 | Runtime caching | Ready for subcalls, file reads, tools, and skills |
-| Optional telemetry spans and ActiveSupport notifications | Ready through `RLM::Telemetry` |
+| Optional telemetry spans, ActiveSupport notifications, and dspy spans | Ready through `RLM::Telemetry` |
 | `RLM::Lm::RubyLLM` and `RLM::Signature::Dspy` | Ready |
 | Rails Railtie, generator, migrations, ActiveStorage adapter | Future v2 milestone |
 
