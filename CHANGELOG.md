@@ -37,6 +37,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `RLM::Sandbox::Docker` for running generated Ruby through the existing worker protocol inside `docker run`.
 - Plain Ruby human review routing with `RLM::Review::Policy`, `RLM::Review::MemoryQueue`, and review items.
 - `RLM::Telemetry::Dspy` for forwarding RLM run and LM-call spans through dspy observability.
+- Write-capable tool execution for `:write_allowed` and approval-gated `:write_requires_approval` tools.
 
 ### Changed
 

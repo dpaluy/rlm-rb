@@ -53,7 +53,6 @@ module RLM
 
     def validate_tool!(klass)
       raise ArgumentError, "tool must inherit from RLM::Tool" unless klass <= RLM::Tool
-      raise ArgumentError, "tool must be read-only: #{klass.registry_name}" unless klass.category == :read_only
     end
 
     def tool_class(tool)

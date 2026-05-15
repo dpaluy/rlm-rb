@@ -48,8 +48,8 @@ authorizer = ->(tool:, input:, context:) { tool == VendorLookup && context.input
 RLM.predict(InvoiceExtraction, input: input, tools: tools, tool_authorizer: authorizer)
 ```
 
-`RLM::ToolRegistry` only accepts tools whose category is `:read_only`. A `tool_authorizer` callable can deny a
-read-only call before execution. Write-capable tools remain a future milestone.
+`RLM::ToolRegistry` accepts all tool categories. Read-only calls may be denied by `tool_authorizer`; write tools marked
+`:write_requires_approval` require `tool_authorizer` approval before execution, and disabled dangerous tools never run.
 
 ## Skills
 

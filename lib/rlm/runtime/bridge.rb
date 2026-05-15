@@ -58,14 +58,13 @@ module RLM
         input = ensure_json_value!(input_hash, "tool input")
         tool = find_tool(tool_name)
         raise ToolError, "Unknown tool: #{tool_name}" if tool.nil?
-        raise ToolError, "Tool is not read-only: #{tool_name}" unless tool_class(tool).category == :read_only
 
         authorize_tool!(tool, input)
         validate_tool_input!(tool, input)
         output = execute_tool(tool, input)
         ensure_json_value!(output, "tool output")
         validate_tool_output!(tool, output)
-        trace.record(:tool_called, tool: tool_class(tool).registry_name, input: input)
+        record_tool_call!(tool, input)
         output
       end
 
@@ -89,9 +88,15 @@ module RLM
       attr_reader :runtime, :context, :trace, :tools, :skills, :signatures, :tool_authorizer, :limits, :depth
 
       def execute_tool(tool, input)
+        return execute_tool_call(tool, input) unless cacheable_tool?(tool)
+
         cached_call(type: "tool", payload: { tool: tool_class(tool).registry_name, input: input }) do
-          tool_instance(tool).call(**symbolize_keys(input))
+          execute_tool_call(tool, input)
         end
+      end
+
+      def execute_tool_call(tool, input)
+        tool_instance(tool).call(**symbolize_keys(input))
       end
 
       def find_signature(signature_name)

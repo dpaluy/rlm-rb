@@ -36,12 +36,32 @@ class RLM::Runtime::BridgeToolTest < Minitest::Test
     end
   end
 
-  def test_tool_rejects_non_read_only_tool
+  def test_tool_executes_write_allowed_tool_without_caching
     bridge = build_bridge(tools: [WriteTool.new])
 
-    assert_raises(RLM::ToolError) do
-      bridge.tool("WriteTool", {})
-    end
+    assert_equal({ ok: true }, bridge.tool("WriteTool", {}))
+  end
+
+  def test_tool_requires_authorizer_for_approval_gated_write
+    bridge = build_bridge(tools: [ApprovalTool.new])
+
+    error = assert_raises(RLM::ToolError) { bridge.tool("ApprovalTool", {}) }
+
+    assert_includes error.message, "requires approval"
+  end
+
+  def test_tool_authorizer_can_allow_approval_gated_write
+    bridge = build_bridge(tools: [ApprovalTool.new], tool_authorizer: ->(**) { true })
+
+    assert_equal({ approved: true }, bridge.tool("ApprovalTool", {}))
+  end
+
+  def test_tool_rejects_disabled_dangerous_tool
+    bridge = build_bridge(tools: [DangerousTool.new], tool_authorizer: ->(**) { true })
+
+    error = assert_raises(RLM::ToolError) { bridge.tool("DangerousTool", {}) }
+
+    assert_includes error.message, "disabled"
   end
 
   def test_tool_validates_input_schema_before_execution

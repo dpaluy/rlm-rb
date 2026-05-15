@@ -18,6 +18,22 @@ module RuntimeBridgeFixtures
     end
   end
 
+  class ApprovalTool < RLM::Tool
+    category :write_requires_approval
+
+    def call
+      { approved: true }
+    end
+  end
+
+  class DangerousTool < RLM::Tool
+    category :dangerous_disabled
+
+    def call
+      { dangerous: true }
+    end
+  end
+
   FakeRuntime = Struct.new(:calls, :max_depth) do
     def predict_subcall(signature, input, depth:)
       raise RLM::BudgetExceededError, "max_recursion_depth exceeded" if max_depth && depth > max_depth

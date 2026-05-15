@@ -24,10 +24,11 @@ class RLM::ToolRegistryTest < Minitest::Test
     assert_equal [LookupVendor], registry.to_a
   end
 
-  def test_rejects_write_tools
-    error = assert_raises(ArgumentError) { RLM::ToolRegistry.new([WriteVendor]) }
+  def test_registers_write_tools_for_policy_enforcement_at_call_time
+    registry = RLM::ToolRegistry.new([WriteVendor])
 
-    assert_includes error.message, "read-only"
+    assert_same WriteVendor, registry.fetch("WriteVendor")
+    assert_equal :write_requires_approval, registry.manifest.first[:category]
   end
 
   def test_manifest_exposes_safe_metadata
