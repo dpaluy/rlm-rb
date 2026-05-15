@@ -114,6 +114,7 @@ RLM.predict(signature, input: input, response_protocol: RLM::ResponseProtocol::J
 ```
 
 Use `RLM::ResponseProtocol.optimize(...)` with eval examples to compare tag, JSON, XML, or custom protocols.
+Use `RLM::ResponseProtocol::NativeJSON` to ask RubyLLM for provider-native structured JSON when available.
 
 The JSON protocol expects one object:
 

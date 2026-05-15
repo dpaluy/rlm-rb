@@ -15,11 +15,11 @@ module RLM
         @call_count = 0
       end
 
-      def call(prompt:, signature:, depth:)
+      def call(prompt:, signature:, depth:, response_protocol: nil, signature_adapter: nil)
         raise ProviderError, "prompt must be a String for #{signature} at depth #{depth}" unless prompt.is_a?(String)
 
-        response = build_chat.ask(prompt)
-        content = response_content(response)
+        response = configured_chat(response_protocol, signature_adapter).ask(prompt)
+        content = response_content(response, response_protocol)
         cost_delta = response_cost_cents(response)
 
         @cost_cents += cost_delta
@@ -45,8 +45,23 @@ module RLM
         model ? ::RubyLLM.chat(model: model) : ::RubyLLM.chat
       end
 
-      def response_content(response)
+      def configured_chat(response_protocol, signature_adapter)
+        chat = build_chat
+        schema = native_schema(response_protocol, signature_adapter)
+        schema ? chat.with_schema(schema) : chat
+      end
+
+      def native_schema(response_protocol, signature_adapter)
+        return unless response_protocol.respond_to?(:native_schema)
+        raise ProviderError, "native response protocol requires signature adapter" if signature_adapter.nil?
+
+        response_protocol.native_schema(signature_adapter)
+      end
+
+      def response_content(response, response_protocol)
         content = response.respond_to?(:content) ? response.content : response.to_s
+        return content if response_protocol.respond_to?(:native_schema) && content.is_a?(Hash)
+
         raise ProviderError, "RubyLLM response content must be a String" unless content.is_a?(String)
 
         content

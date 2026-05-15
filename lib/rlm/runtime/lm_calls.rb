@@ -40,7 +40,13 @@ module RLM
         name = Signature.name_for(checked_signature)
         before_cost = candidate.cost_cents if candidate.respond_to?(:cost_cents)
         response = telemetry.in_span("rlm.lm_call", attributes: { signature: name, depth: call_depth }) do
-          candidate.call(prompt: prompt, signature: name, depth: call_depth)
+          candidate.call(
+            prompt: prompt,
+            signature: name,
+            signature_adapter: checked_signature,
+            depth: call_depth,
+            response_protocol: response_protocol
+          )
         end
         @llm_calls += 1
         payload = {

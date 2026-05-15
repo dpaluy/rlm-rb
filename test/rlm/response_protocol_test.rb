@@ -45,6 +45,21 @@ class RLM::ResponseProtocolTest < Minitest::Test
     assert_includes instructions, "Return exactly one XML document"
   end
 
+  def test_native_json_extracts_hash_final_output
+    parsed = RLM::ResponseProtocol::NativeJSON.extract({ "summary" => "ok" })
+
+    assert_equal({ type: :final, content: { "summary" => "ok" } }, parsed)
+  end
+
+  def test_native_json_builds_output_schema_from_signature
+    signature = Struct.new(:output_fields, keyword_init: true).new(output_fields: { total: :integer })
+
+    schema = RLM::ResponseProtocol::NativeJSON.native_schema(signature)
+
+    assert_equal "integer", schema.dig(:schema, :properties, "total", :type)
+    assert_equal ["total"], schema.dig(:schema, :required)
+  end
+
   def test_response_protocol_can_be_required_directly
     script = 'require "rlm/response_protocol"; puts RLM::ResponseProtocol.output_instructions'
     output = IO.popen([RbConfig.ruby, "-Ilib", "-e", script], &:read)

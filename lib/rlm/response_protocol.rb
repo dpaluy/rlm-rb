@@ -4,6 +4,7 @@ require_relative "errors"
 require_relative "response_protocol/tags"
 require_relative "response_protocol/json"
 require_relative "response_protocol/xml"
+require_relative "response_protocol/native_json"
 require_relative "response_protocol/selection"
 
 module RLM
