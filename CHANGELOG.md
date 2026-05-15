@@ -31,6 +31,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Runtime cache reuse for identical context file reads, read-only tool calls, and skill calls.
 - `RLM::ResponseProtocol::JSON` for models that should return `{"type":"code"|"final","content":...}` instead of
   the default tag-delimited protocol.
+- `RLM::Optimizer::Dspy` and `RLM::Optimizer::DspyProgram` for adapting RLM eval examples and predictions to
+  dspy.rb teleprompter optimizers.
 
 ### Changed
 

@@ -15,9 +15,10 @@ controls, trace events, a RubyLLM LM adapter, a dspy signature adapter, and a mi
 > `RLM::Signature::Dspy`, `RLM::Lm::Mock`, `RLM::Sandbox::Subprocess`, `RLM::Sandbox::UnsafeInProcess`,
 > budget enforcement and budget policies, trace events, recursive `predict`, prompt building, and a best-effort
 > `trace_store` callable hook, an in-memory trace store, JSONL eval export from traces/results, plus an in-memory eval
-> runner, identical recursive subcall caching, optional telemetry spans, and plain Ruby CSV/directory/PDF/HTML skills. Rails integration,
-> container/remote sandboxing, browser automation, real PDF parsing/OCR, and optimizer integration remain future milestones. `UnsafeInProcess` is dev/test-only
-> and executes generated code in the host Ruby process.
+> runner, a dspy optimizer adapter, identical recursive subcall caching, optional telemetry spans, and plain Ruby
+> CSV/directory/PDF/HTML skills. Rails integration, container/remote sandboxing, browser automation, and real PDF
+> parsing/OCR remain future milestones. `UnsafeInProcess` is dev/test-only and executes generated code in the host
+> Ruby process.
 
 ## Why
 
@@ -36,8 +37,8 @@ RLM.rb separates production AI jobs into five layers:
 - **Inference**: provider and model calls through `RLM::Lm::*`, including `RLM::Lm::RubyLLM`.
 - **Rendering**: the RLM response protocol that renders tasks into prompts and parses `<rlm-code>` / `<rlm-final>`.
 - **Call graph**: recursive runtime execution through `RLM::Runtime`, sandbox helpers, tools, and sub-signatures.
-- **Evals**: trace/result export through `RLM::EvalExample` and `RLM::EvalExporter`, plus `RLM::Eval.run`;
-  optimization comes later.
+- **Evals**: trace/result export through `RLM::EvalExample` and `RLM::EvalExporter`, local evals through
+  `RLM::Eval.run`, and dspy optimizer entrypoints through `RLM::Optimizer::Dspy`.
 
 ## Install
 
@@ -230,6 +231,7 @@ Rails integration is not yet implemented. Rails remains a v2 milestone tracked i
 | `RLM::ResponseProtocol` | Ready for the default RLM tag rendering protocol and JSON response envelope |
 | `RLM::EvalExample` / `RLM::EvalExporter` | Ready for trace/result JSONL export |
 | `RLM::Eval.run` | Ready for in-memory golden dataset evaluation with caller-supplied metrics |
+| `RLM::Optimizer::Dspy` | Ready for adapting RLM eval examples to dspy teleprompters |
 | `RLM::Runtime::Bridge` | Ready for runtime-owned subcalls, tools, submission, file reads, and logging |
 | Budget enforcement and policies (`max_llm_calls`, `max_sub_lm_calls`, `max_tool_calls`, `max_iterations`, `max_cost_cents`, `max_runtime_seconds`, `on_budget_exceeded`) | Ready |
 | `trace_store` callable hook | Ready (best-effort; receives terminal `RLM::Result`) |
@@ -398,8 +400,32 @@ report.passed   # => 1
 report.score    # => 1.0
 ```
 
-The eval runner is intentionally local and synchronous. It does not persist datasets, run dspy optimizers, or manage
-provider credentials; pass normal `RLM.predict` options or inject `predictor:` for custom execution.
+The eval runner is intentionally local and synchronous. It does not persist datasets or manage provider credentials;
+pass normal `RLM.predict` options or inject `predictor:` for custom execution.
+
+## dspy Optimization
+
+`RLM::Optimizer::Dspy` bridges RLM eval examples into dspy.rb optimizers. It converts `RLM::EvalExample` or structured
+hash examples into `DSPy::Example` instances, then calls a supplied dspy teleprompter with an RLM-backed program.
+
+```ruby
+teleprompter = your_dspy_teleprompter
+
+optimization = RLM::Optimizer::Dspy.compile(
+  RLM::Signature::Dspy.new(InvoiceExtraction),
+  examples: [
+    {
+      input: { invoice_text: "Invoice total: $42" },
+      expected_output: { total_cents: 4200 }
+    }
+  ],
+  teleprompter: teleprompter,
+  lm: RLM::Lm::RubyLLM.new(model: "gpt-5-mini")
+)
+```
+
+The adapter uses the optimizer's native `compile(program, trainset:, valset:)` contract. RLM does not bundle optional
+dspy optimizer gems; install the dspy optimizer package you want and pass the teleprompter object explicitly.
 
 ## Subcall caching
 

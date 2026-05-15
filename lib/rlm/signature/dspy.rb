@@ -28,6 +28,8 @@ module RLM
         name
       end
 
+      def signature_class = signature
+
       def input_fields = fields_for(input_schema)
 
       def output_fields = fields_for(output_schema)
