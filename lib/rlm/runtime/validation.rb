@@ -11,7 +11,7 @@ module RLM
         errors = validate_output(signature, coerced_output)
         return validation_failure(errors) unless errors.empty?
 
-        trace.record(:run_completed, status: :completed)
+        trace.record(:run_completed, status: :completed, output: coerced_output)
         finish(:completed, output: coerced_output)
       end
 

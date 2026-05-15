@@ -210,6 +210,7 @@ Rails integration is not yet implemented. Rails remains a v2 milestone tracked i
 | `RLM::Context` with sandbox-safe manifest | Ready |
 | `RLM::Trace` with NDJSON / JSON export | Ready |
 | `RLM::Result` with full status enum | Ready |
+| `RLM::TraceReplay` | Ready for deterministic terminal result reconstruction from traces |
 | `RLM::Sandbox::Base` interface + `Mock` backend | Ready |
 | `RLM::Sandbox::Subprocess` | Ready for local process isolation; supports timeout, stdout/stderr capture and caps, exit status capture, tempdir cleanup, and bridge-proxied helper calls |
 | `RLM::Sandbox::UnsafeInProcess` | Ready for dev/test only; executes in host process and mutates global streams during serialized capture |
@@ -252,6 +253,16 @@ result = RLM.predict(
 
 store.fetch(result.trace.id) # => result
 store.all                   # => [result]
+```
+
+Replay a stored trace into a terminal `RLM::Result` without making provider calls:
+
+```ruby
+stored_result = store.fetch(result.trace.id)
+replayed = RLM::TraceReplay.result(stored_result.trace)
+
+replayed.status # => :completed
+replayed.output # => stored_result.output
 ```
 
 ## Tools

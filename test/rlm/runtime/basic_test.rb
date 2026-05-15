@@ -26,6 +26,17 @@ class RLM::RuntimeBasicTest < RuntimeTestCase
     assert sandbox.cleanup_called
   end
 
+  def test_completed_trace_records_terminal_output_for_replay
+    result = RLM.predict(
+      RootSignature,
+      input: { text: "hello" },
+      lm: RLM::Lm::Mock.new(responses: ['<rlm-final>{"summary":"done"}</rlm-final>']),
+      sandbox: tracking_sandbox
+    )
+
+    assert_equal({ "summary" => "done" }, result.trace.events.last[:payload][:output])
+  end
+
   def test_direct_final_response_completes_without_sandbox_execution
     lm = RLM::Lm::Mock.new(responses: ['<rlm-final>{"summary":"done"}</rlm-final>'])
     sandbox = tracking_sandbox

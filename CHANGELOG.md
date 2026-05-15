@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `RLM::Tool.input_schema` and `RLM::Tool.output_schema` for shallow JSON-shaped tool contract validation.
 - `tool_authorizer` hook on config and prediction calls to approve or deny read-only tool execution.
 - Identical recursive subcall caching through `cache:` / `RLM.config.cache`.
+- `RLM::TraceReplay` for reconstructing terminal `RLM::Result` objects from completed traces.
 
 ### Changed
 
