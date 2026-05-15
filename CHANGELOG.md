@@ -39,6 +39,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `RLM::Telemetry::Dspy` for forwarding RLM run and LM-call spans through dspy observability.
 - Write-capable tool execution for `:write_allowed` and approval-gated `:write_requires_approval` tools.
 - `RLM::ResponseProtocol::XML` for XML-envelope code/final responses.
+- `RLM::Sandbox::Remote` for caller-supplied remote sandbox transports.
 
 ### Changed
 

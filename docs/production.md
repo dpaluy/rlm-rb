@@ -93,8 +93,10 @@ host-app concern.
   status, and removes its temp directory during cleanup.
 - `RLM::Sandbox::Docker` runs the same worker protocol through `docker run --rm -i --network none`, mounting only the
   prepared temp workdir into `/workspace`.
+- `RLM::Sandbox::Remote` sends prepared context/tool/skill manifests and code to a caller-supplied client, so a host app
+  can route execution to its own isolated runner without adding transport dependencies to the gem.
 - Subprocess and Docker helper calls are proxied to the parent runtime over a narrow JSON-line protocol.
-- Remote isolated runners remain a later hardening backend.
+- WASM isolated runners remain a later hardening backend.
 - Mounted files are data, not instructions; generated code should treat file contents as untrusted input.
 
 ## Development
