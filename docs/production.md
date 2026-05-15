@@ -70,6 +70,21 @@ Soft failures land on `result.status` instead of raising. Inspect `result.succes
 Budget handling honors `limits.on_budget_exceeded`: `:fail`, `:needs_review`, and conservative `:return_partial` when
 a valid submitted output already exists.
 
+## Human Review
+
+Use `RLM::Review.route` when a host app needs an explicit review queue before accepting uncertain results.
+
+```ruby
+queue = RLM::Review::MemoryQueue.new
+item = RLM::Review.route(result, queue: queue, metadata: { source: "invoice_import" })
+
+queue.resolve(item.id, decision: :approved, reviewer: current_user.email) if item
+```
+
+The default policy routes `:needs_review` and `:failed_validation` results. Pass `RLM::Review::Policy.new` with custom
+statuses or a predicate for app-specific rules. `MemoryQueue` is process-local; durable Rails persistence is still a v2
+host-app concern.
+
 ## Production Safety
 
 - `RLM::Sandbox::UnsafeInProcess` executes generated code in the host Ruby process. It is dev/test-only and unsafe.

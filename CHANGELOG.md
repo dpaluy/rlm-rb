@@ -35,6 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   dspy.rb teleprompter optimizers.
 - Optional ActiveSupport notification emission for `rlm.run` and `rlm.lm_call` when ActiveSupport is already loaded.
 - `RLM::Sandbox::Docker` for running generated Ruby through the existing worker protocol inside `docker run`.
+- Plain Ruby human review routing with `RLM::Review::Policy`, `RLM::Review::MemoryQueue`, and review items.
 
 ### Changed
 
