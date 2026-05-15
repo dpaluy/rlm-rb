@@ -79,6 +79,15 @@ class RLM::PredictTest < Minitest::Test
     assert_same explicit, predictor.cache
   end
 
+  def test_telemetry_can_come_from_config
+    telemetry = RLM::Telemetry.new
+    RLM.config.telemetry = telemetry
+
+    predictor = RLM::Predict.new(:my_signature)
+
+    assert_same telemetry, predictor.telemetry
+  end
+
   def test_call_runs_runtime
     lm = RLM::Lm::Mock.new(responses: ['<rlm-final>{"ok":true}</rlm-final>'])
     predictor = RLM::Predict.new(FakeSignature, lm: lm)

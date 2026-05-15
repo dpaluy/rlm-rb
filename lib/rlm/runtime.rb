@@ -16,6 +16,7 @@ require_relative "runtime/signature_registry"
 require_relative "runtime/subcall_cache"
 require_relative "runtime/validation"
 require_relative "signature"
+require_relative "telemetry"
 require_relative "trace"
 require_relative "tool_registry"
 
@@ -43,7 +44,8 @@ module RLM
       depth: 0,
       trace_store: nil,
       tool_authorizer: nil,
-      cache: nil
+      cache: nil,
+      telemetry: nil
     )
       @signature = signature
       @input = input || {}
@@ -60,6 +62,7 @@ module RLM
       @trace_store = trace_store
       @tool_authorizer = tool_authorizer
       @cache = cache
+      @telemetry = telemetry || Telemetry.default
       @trace = Trace.new
       @iterations = 0
       @llm_calls = 0
@@ -69,11 +72,13 @@ module RLM
     end
 
     def call
-      raise ProviderError, "root LM is required" if lm.nil?
+      telemetry.in_span("rlm.run", attributes: { signature: Signature.name_for(signature), depth: depth }) do
+        raise ProviderError, "root LM is required" if lm.nil?
 
-      start_run
-      bridge = prepare_sandbox
-      run_loop(bridge)
+        start_run
+        bridge = prepare_sandbox
+        run_loop(bridge)
+      end
     rescue BudgetExceededError => e
       budget_exceeded_result(e)
     rescue ToolError => e
@@ -119,6 +124,6 @@ module RLM
 
     attr_reader :signature, :input, :lm, :sub_lm, :context, :tools, :skills,
                 :sandbox, :limits, :validators, :signatures, :depth, :trace,
-                :iterations, :llm_calls, :sub_lm_calls, :trace_store, :tool_authorizer, :cache
+                :iterations, :llm_calls, :sub_lm_calls, :trace_store, :tool_authorizer, :cache, :telemetry
   end
 end

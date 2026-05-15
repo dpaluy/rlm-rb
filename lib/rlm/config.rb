@@ -2,7 +2,7 @@
 
 module RLM
   class Config
-    attr_accessor :root_lm, :sub_lm, :sandbox, :cache, :default_limits, :trace_store, :tool_authorizer
+    attr_accessor :root_lm, :sub_lm, :sandbox, :cache, :default_limits, :trace_store, :tool_authorizer, :telemetry
     attr_writer :logger
 
     def initialize
@@ -13,6 +13,7 @@ module RLM
       @default_limits = Limits.new
       @trace_store = nil
       @tool_authorizer = nil
+      @telemetry = Telemetry.default
       @logger = nil
     end
 

@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `tool_authorizer` hook on config and prediction calls to approve or deny read-only tool execution.
 - Identical recursive subcall caching through `cache:` / `RLM.config.cache`.
 - `RLM::TraceReplay` for reconstructing terminal `RLM::Result` objects from completed traces.
+- `RLM::Telemetry` for optional dependency-free run and LM-call spans with OpenTelemetry-compatible tracers.
 
 ### Changed
 

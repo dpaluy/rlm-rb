@@ -15,9 +15,9 @@ controls, trace events, a RubyLLM LM adapter, a dspy signature adapter, and a mi
 > `RLM::Signature::Dspy`, `RLM::Lm::Mock`, `RLM::Sandbox::Subprocess`, `RLM::Sandbox::UnsafeInProcess`,
 > budget enforcement and budget policies, trace events, recursive `predict`, prompt building, and a best-effort
 > `trace_store` callable hook, an in-memory trace store, JSONL eval export from traces/results, plus an in-memory eval
-> runner, and identical recursive subcall caching. Rails integration, container/remote sandboxing, tools, skills,
-> telemetry, and optimizer integration remain future milestones. `UnsafeInProcess` is dev/test-only and executes
-> generated code in the host Ruby process.
+> runner, identical recursive subcall caching, and optional telemetry spans. Rails integration, container/remote
+> sandboxing, tools, skills, and optimizer integration remain future milestones. `UnsafeInProcess` is dev/test-only
+> and executes generated code in the host Ruby process.
 
 ## Why
 
@@ -229,6 +229,7 @@ Rails integration is not yet implemented. Rails remains a v2 milestone tracked i
 | `trace_store` callable hook | Ready (best-effort; receives terminal `RLM::Result`) |
 | `RLM::TraceStore` / `RLM::TraceStore::Memory` | Ready for plain Ruby in-memory result storage |
 | Identical recursive subcall caching | Ready through `cache:` / `RLM.config.cache` |
+| Optional telemetry spans | Ready through `RLM::Telemetry`; OpenTelemetry-compatible when available |
 | Recursive `predict` + depth limit | Ready |
 | `RLM::Lm::RubyLLM` provider adapter | Ready |
 | `RLM::Signature::Dspy` signature adapter | Ready |
@@ -364,6 +365,18 @@ result = RLM.predict(
 ```
 
 Plain Ruby hashes are supported. Cache objects that respond to `fetch` and `write` are also supported.
+
+## Telemetry
+
+`RLM::Telemetry` is dependency-free. When given a tracer object that responds to `in_span`, it records `rlm.run` and
+`rlm.lm_call` spans. Without a tracer, it is a no-op. If the `opentelemetry-api` gem is present and configured, the
+default telemetry object uses `OpenTelemetry.tracer_provider.tracer("rlm-rb")`.
+
+```ruby
+RLM.configure do |config|
+  config.telemetry = RLM::Telemetry.default
+end
+```
 
 ## Rails setup (intended v2 milestone)
 

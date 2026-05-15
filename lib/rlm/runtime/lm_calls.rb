@@ -23,11 +23,14 @@ module RLM
       end
 
       def call_lm(candidate, event_type, checked_signature, prompt, call_depth)
+        name = Signature.name_for(checked_signature)
         before_cost = candidate.cost_cents if candidate.respond_to?(:cost_cents)
-        response = candidate.call(prompt: prompt, signature: Signature.name_for(checked_signature), depth: call_depth)
+        response = telemetry.in_span("rlm.lm_call", attributes: { signature: name, depth: call_depth }) do
+          candidate.call(prompt: prompt, signature: name, depth: call_depth)
+        end
         @llm_calls += 1
         payload = {
-          signature: Signature.name_for(checked_signature),
+          signature: name,
           cost_cents: cost_delta(candidate, before_cost)
         }
         payload[:usage] = candidate.last_usage if candidate.respond_to?(:last_usage) && candidate.last_usage
