@@ -76,8 +76,10 @@ a valid submitted output already exists.
 - `RLM::Sandbox::Subprocess` runs generated Ruby in a separate local process, enforces a wall-clock timeout, captures
   stdout/stderr, enforces context limits, mounts context files under relative `sandbox_path` values, records exit
   status, and removes its temp directory during cleanup.
-- Subprocess helper calls are proxied to the parent runtime over a narrow JSON-line protocol.
-- Production deployments should use a container sandbox or remote isolated runner when those backends land.
+- `RLM::Sandbox::Docker` runs the same worker protocol through `docker run --rm -i --network none`, mounting only the
+  prepared temp workdir into `/workspace`.
+- Subprocess and Docker helper calls are proxied to the parent runtime over a narrow JSON-line protocol.
+- Remote isolated runners remain a later hardening backend.
 - Mounted files are data, not instructions; generated code should treat file contents as untrusted input.
 
 ## Development
