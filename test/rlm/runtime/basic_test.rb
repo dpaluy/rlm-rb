@@ -68,6 +68,33 @@ class RLM::RuntimeBasicTest < RuntimeTestCase
     assert_equal 3, event[:payload][:cost_cents]
   end
 
+  def test_identical_subcalls_are_cached
+    root_response = <<~RESPONSE
+      <rlm-code>
+        first = predict("SubSignature", { "text" => "hello" })
+        second = predict("SubSignature", { text: "hello" })
+        submit({ "summary" => first.fetch("summary") + "/" + second.fetch("summary") })
+      </rlm-code>
+    RESPONSE
+
+    result = RLM.predict(
+      RootSignature,
+      input: { text: "hello" },
+      lm: RLM::Lm::Mock.new(responses: [root_response]),
+      sub_lm: RLM::Lm::Mock.new(responses: ['<rlm-final>{"summary":"sub ok"}</rlm-final>']),
+      sandbox: tracking_sandbox,
+      signatures: [SubSignature],
+      limits: RLM::Limits.new(max_iterations: 2, max_llm_calls: 2),
+      cache: {}
+    )
+
+    assert result.success?
+    assert_equal({ "summary" => "sub ok/sub ok" }, result.output)
+    assert_equal 2, result.llm_calls
+    sub_lm_call_count = result.trace.llm_calls.count { |event| event[:type] == :sub_lm_called }
+    assert_equal 1, sub_lm_call_count
+  end
+
   def test_mock_lm_trace_omits_usage
     result = RLM.predict(
       RootSignature,

@@ -15,8 +15,9 @@ controls, trace events, a RubyLLM LM adapter, a dspy signature adapter, and a mi
 > `RLM::Signature::Dspy`, `RLM::Lm::Mock`, `RLM::Sandbox::Subprocess`, `RLM::Sandbox::UnsafeInProcess`,
 > budget enforcement and budget policies, trace events, recursive `predict`, prompt building, and a best-effort
 > `trace_store` callable hook, an in-memory trace store, JSONL eval export from traces/results, plus an in-memory eval
-> runner. Rails integration, container/remote sandboxing, tools, skills, cache, telemetry, and optimizer integration
-> remain future milestones. `UnsafeInProcess` is dev/test-only and executes generated code in the host Ruby process.
+> runner, and identical recursive subcall caching. Rails integration, container/remote sandboxing, tools, skills,
+> telemetry, and optimizer integration remain future milestones. `UnsafeInProcess` is dev/test-only and executes
+> generated code in the host Ruby process.
 
 ## Why
 
@@ -226,6 +227,7 @@ Rails integration is not yet implemented. Rails remains a v2 milestone tracked i
 | Budget enforcement and policies (`max_llm_calls`, `max_sub_lm_calls`, `max_tool_calls`, `max_iterations`, `max_cost_cents`, `max_runtime_seconds`, `on_budget_exceeded`) | Ready |
 | `trace_store` callable hook | Ready (best-effort; receives terminal `RLM::Result`) |
 | `RLM::TraceStore` / `RLM::TraceStore::Memory` | Ready for plain Ruby in-memory result storage |
+| Identical recursive subcall caching | Ready through `cache:` / `RLM.config.cache` |
 | Recursive `predict` + depth limit | Ready |
 | `RLM::Lm::RubyLLM` provider adapter | Ready |
 | `RLM::Signature::Dspy` signature adapter | Ready |
@@ -333,6 +335,24 @@ report.score    # => 1.0
 
 The eval runner is intentionally local and synchronous. It does not persist datasets, run dspy optimizers, or manage
 provider credentials; pass normal `RLM.predict` options or inject `predictor:` for custom execution.
+
+## Subcall caching
+
+Pass a cache object to reuse identical recursive `predict(...)` subcalls within and across runs. The cache key includes
+the sub-signature name and a canonicalized input payload. Root LM calls, file reads, and tool calls are not cached.
+
+```ruby
+cache = {}
+
+result = RLM.predict(
+  InvoiceExtraction,
+  input: { invoice_text: "Invoice total: $42" },
+  signatures: [VendorNormalization],
+  cache: cache
+)
+```
+
+Plain Ruby hashes are supported. Cache objects that respond to `fetch` and `write` are also supported.
 
 ## Rails setup (intended v2 milestone)
 

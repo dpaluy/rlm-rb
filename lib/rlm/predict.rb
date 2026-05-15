@@ -3,7 +3,7 @@
 module RLM
   class Predict
     attr_reader :signature, :lm, :sub_lm, :tools, :skills, :sandbox,
-                :limits, :trace_store, :tool_authorizer, :validators, :signatures
+                :limits, :trace_store, :tool_authorizer, :cache, :validators, :signatures
 
     def initialize(
       signature,
@@ -15,6 +15,7 @@ module RLM
       limits: nil,
       trace_store: nil,
       tool_authorizer: nil,
+      cache: nil,
       validators: [],
       signatures: []
     )
@@ -29,6 +30,7 @@ module RLM
       @limits = limits || RLM.config.default_limits
       @trace_store = trace_store || RLM.config.trace_store
       @tool_authorizer = resolve_tool_authorizer(tool_authorizer)
+      @cache = resolve_cache(cache)
       @validators = Array(validators)
       @signatures = signatures
     end
@@ -46,7 +48,8 @@ module RLM
         validators: validators,
         signatures: signatures,
         trace_store: trace_store,
-        tool_authorizer: tool_authorizer
+        tool_authorizer: tool_authorizer,
+        cache: cache
       ).call
     end
 
@@ -60,6 +63,12 @@ module RLM
       return candidate unless candidate.nil?
 
       RLM.config.tool_authorizer
+    end
+
+    def resolve_cache(candidate)
+      return candidate unless candidate.nil?
+
+      RLM.config.cache
     end
   end
 end

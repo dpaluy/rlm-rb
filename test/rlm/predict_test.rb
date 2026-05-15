@@ -61,6 +61,24 @@ class RLM::PredictTest < Minitest::Test
     assert_same explicit, predictor.tool_authorizer
   end
 
+  def test_cache_can_come_from_config
+    cache = {}
+    RLM.config.cache = cache
+
+    predictor = RLM::Predict.new(:my_signature)
+
+    assert_same cache, predictor.cache
+  end
+
+  def test_explicit_cache_overrides_config
+    explicit = {}
+    RLM.config.cache = {}
+
+    predictor = RLM::Predict.new(:my_signature, cache: explicit)
+
+    assert_same explicit, predictor.cache
+  end
+
   def test_call_runs_runtime
     lm = RLM::Lm::Mock.new(responses: ['<rlm-final>{"ok":true}</rlm-final>'])
     predictor = RLM::Predict.new(FakeSignature, lm: lm)

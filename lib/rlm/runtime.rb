@@ -13,6 +13,7 @@ require_relative "runtime/execution"
 require_relative "runtime/finish"
 require_relative "runtime/lm_calls"
 require_relative "runtime/signature_registry"
+require_relative "runtime/subcall_cache"
 require_relative "runtime/validation"
 require_relative "signature"
 require_relative "trace"
@@ -24,6 +25,7 @@ module RLM
     include Runtime::Execution
     include Runtime::Finish
     include Runtime::LmCalls
+    include Runtime::SubcallCache
     include Runtime::Validation
 
     def initialize(
@@ -40,7 +42,8 @@ module RLM
       signatures: [],
       depth: 0,
       trace_store: nil,
-      tool_authorizer: nil
+      tool_authorizer: nil,
+      cache: nil
     )
       @signature = signature
       @input = input || {}
@@ -56,6 +59,7 @@ module RLM
       @depth = depth
       @trace_store = trace_store
       @tool_authorizer = tool_authorizer
+      @cache = cache
       @trace = Trace.new
       @iterations = 0
       @llm_calls = 0
@@ -90,12 +94,14 @@ module RLM
       raise BudgetExceededError, "max_recursion_depth exceeded" if depth > limits.max_recursion_depth
       raise ProviderError, "sub LM is required" if sub_lm.nil?
 
-      parsed = call_sub_lm(signature, input, depth)
-      raise ValidationError, "sub LM must return <rlm-final> in v0.2 mock runtime" unless parsed.final?
+      cached_subcall(signature, input) do
+        parsed = call_sub_lm(signature, input, depth)
+        raise ValidationError, "sub LM must return <rlm-final> in v0.2 mock runtime" unless parsed.final?
 
-      output = Signature.coerce_output(signature, parsed.content)
-      validate_output!(signature, output)
-      output
+        output = Signature.coerce_output(signature, parsed.content)
+        validate_output!(signature, output)
+        output
+      end
     end
 
     def record_tool_attempt!
@@ -113,6 +119,6 @@ module RLM
 
     attr_reader :signature, :input, :lm, :sub_lm, :context, :tools, :skills,
                 :sandbox, :limits, :validators, :signatures, :depth, :trace,
-                :iterations, :llm_calls, :sub_lm_calls, :trace_store, :tool_authorizer
+                :iterations, :llm_calls, :sub_lm_calls, :trace_store, :tool_authorizer, :cache
   end
 end
