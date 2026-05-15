@@ -3,19 +3,19 @@
 [![Gem Version](https://badge.fury.io/rb/rlm-rb.svg)](https://badge.fury.io/rb/rlm-rb)
 [![CI](https://github.com/dpaluy/rlm/actions/workflows/ci.yml/badge.svg)](https://github.com/dpaluy/rlm/actions/workflows/ci.yml)
 
-Recursive Language Models for Ruby and Rails.
+Recursive Language Models for Ruby.
 
 RLM.rb is a Ruby runtime for typed, sandbox-oriented, auditable AI jobs over large application context.
-It is designed to integrate with [RubyLLM](https://github.com/crmne/ruby_llm) for provider access and [dspy.rb](https://github.com/vicentereig/dspy.rb)
-for typed signatures in future milestones. The current v0.2 work focuses on the recursive execution spine: prompt loop,
-file and context mounting, recursive sub-LM calls, typed final output, budget controls, trace events, and a minimal
-trace persistence hook.
+It integrates with [RubyLLM](https://github.com/crmne/ruby_llm) for provider access and
+[dspy.rb](https://github.com/vicentereig/dspy.rb) for typed signatures. The current plain Ruby milestone includes the
+recursive execution spine: prompt loop, file and context mounting, recursive sub-LM calls, typed final output, budget
+controls, trace events, a RubyLLM LM adapter, a dspy signature adapter, and a minimal trace persistence hook.
 
-> **Status: Unreleased v0.2 mock runtime spine.** The released gem is v0.1.0 (skeleton). The main branch contains
-> a mock runtime loop with `RLM::Lm::Mock`, `RLM::Sandbox::UnsafeInProcess`, budget enforcement and budget policies,
-> trace events, recursive `predict`, prompt building, and a best-effort `trace_store` callable hook. Provider adapters,
-> dspy.rb adapters, subprocess/container sandboxing, and Rails integration remain future milestones. `UnsafeInProcess`
-> is dev/test-only and executes generated code in the host Ruby process.
+> **Status: Unreleased plain Ruby adapter milestone.** The released gem is v0.1.0 (skeleton). The main branch contains
+> `RLM::Lm::RubyLLM`, `RLM::Signature::Dspy`, `RLM::Lm::Mock`, `RLM::Sandbox::UnsafeInProcess`, budget enforcement and
+> budget policies, trace events, recursive `predict`, prompt building, and a best-effort `trace_store` callable hook.
+> Rails integration, subprocess/container sandboxing, tools, skills, cache, telemetry, and evals remain future
+> milestones. `UnsafeInProcess` is dev/test-only and executes generated code in the host Ruby process.
 
 ## Why
 
@@ -27,6 +27,9 @@ RLM.rb replaces those with a bounded Ruby runtime where the model explores conte
 typed LLM functions only when needed, and returns validated Ruby objects with a full execution trace.
 
 ## Install
+
+RLM.rb requires Ruby 3.3 or newer. Ruby 3.2 and older are not supported because dspy.rb is mandatory for the plain
+Ruby adapter milestone.
 
 Add the gem to your Gemfile:
 
@@ -44,9 +47,8 @@ gem install rlm-rb
 
 ```ruby
 RLM.configure do |config|
-  # Provider adapters land in the next milestone.
-  # config.root_lm = RubyLLM.chat(model: "anthropic/claude-sonnet-4")
-  # config.sub_lm  = RubyLLM.chat(model: "openai/gpt-5-mini")
+  config.root_lm = RLM::Lm::RubyLLM.new(model: "gpt-5-mini")
+  config.sub_lm = RLM::Lm::RubyLLM.new(model: "gpt-5-mini")
 
   config.sandbox = RLM::Sandbox::Mock.new
 
@@ -61,7 +63,59 @@ RLM.configure do |config|
 end
 ```
 
-## Mock Runtime API (executable with mock LM)
+`RLM::Lm::RubyLLM` creates a fresh `RubyLLM.chat` for each runtime LM call. That keeps RLM prompts standalone and
+prevents conversation history from leaking between root and sub-model calls.
+
+## Plain Ruby API
+
+```ruby
+require "dspy"
+require "rlm"
+
+class InvoiceExtraction < DSPy::Signature
+  description "Extract normalized invoice fields from a vendor invoice."
+
+  input do
+    const :invoice_text, String
+    const :vendor_id, Integer
+  end
+
+  output do
+    const :vendor_name, String
+    const :invoice_number, String
+    const :total_cents, Integer
+  end
+end
+
+RLM.configure do |config|
+  config.root_lm = RLM::Lm::RubyLLM.new(model: "gpt-5-mini")
+  config.sub_lm = RLM::Lm::RubyLLM.new(model: "gpt-5-mini")
+  config.sandbox = RLM::Sandbox::UnsafeInProcess.new # dev/test only
+end
+
+signature = RLM::Signature::Dspy.new(InvoiceExtraction)
+
+result = RLM.predict(
+  signature,
+  input: {
+    invoice_text: "Vendor: Acme\nInvoice: INV-001\nTotal: $100.00",
+    vendor_id: 123
+  },
+  limits: RLM::Limits.new(max_iterations: 8, max_llm_calls: 25)
+)
+
+result.output
+# => { vendor_name: "Acme", invoice_number: "INV-001", total_cents: 10000 }
+
+result.trace.events.find { |event| event[:type] == :root_lm_called }[:payload][:usage]
+# => { model_id: "...", input_tokens: ..., output_tokens: ..., cost_cents: ..., cost_known: true }
+```
+
+Usage metadata is recorded on `:root_lm_called` and `:sub_lm_called` trace events when an adapter exposes it. It is not
+duplicated onto `RLM::Result` in this milestone. RubyLLM cost helpers can return `nil` when model pricing is unknown;
+RLM records `cost_known: false`, contributes `0` cents for that call, and cannot enforce unknown provider cost.
+
+## Mock Runtime API
 
 ```ruby
 class InvoiceExtraction
@@ -90,39 +144,25 @@ result.cost_cents       # accumulated cost
 result.status           # :completed, :budget_exceeded, :failed_validation, ...
 ```
 
-## Intended Production API (future milestone)
+## dspy Signature Adapter
 
-```ruby
-class InvoiceExtraction < DSPy::Signature
-  description "Extract normalized invoice fields from a vendor invoice."
+`RLM::Signature::Dspy` wraps a `DSPy::Signature` class behind RLM's internal signature protocol:
 
-  input do
-    const :invoice_pdf, RLM::File
-    const :vendor_id, Integer
-  end
+- `description`
+- `input_fields`
+- `output_fields`
+- `validate_input`
+- `validate_output`
+- `coerce_output`
 
-  output do
-    const :vendor_name, String
-    const :invoice_number, String
-    const :total_cents, Integer
-    const :confidence, Float
-    const :needs_review, T::Boolean
-  end
-end
+The adapter derives fields and simple validation from dspy JSON schema metadata. Output coercion normalizes parsed
+JSON/hash output to schema keys before validation.
 
-result = RLM.predict(
-  InvoiceExtraction,
-  input: {
-    invoice_pdf: RLM::File.from_path("invoice.pdf"),
-    vendor_id: 123
-  },
-  max_iterations: 10,
-  max_llm_calls: 30,
-  max_cost_cents: 150
-)
-```
+## Rails
 
-## What's implemented
+Rails integration is not yet implemented. Rails remains a v2 milestone tracked in `docs/postponed-issues.md`.
+
+## What's Implemented
 
 | Component | Status |
 |-----------|--------|
@@ -144,22 +184,23 @@ result = RLM.predict(
 | Budget enforcement and policies (`max_llm_calls`, `max_sub_lm_calls`, `max_tool_calls`, `max_iterations`, `max_cost_cents`, `max_runtime_seconds`, `on_budget_exceeded`) | Ready |
 | `trace_store` callable hook | Ready (best-effort; receives terminal `RLM::Result`) |
 | Recursive `predict` + depth limit | Ready |
-| RubyLLM provider adapter | Future milestone |
-| dspy.rb signature adapter | Future milestone |
+| `RLM::Lm::RubyLLM` provider adapter | Ready |
+| `RLM::Signature::Dspy` signature adapter | Ready |
+| Trace usage metadata for RubyLLM calls | Ready |
 | `RLM::Sandbox::Subprocess` | Future milestone |
 | Rails Railtie, generator, migrations, ActiveStorage adapter | Future milestone |
 
-The table above reflects the current unreleased v0.2 implementation status.
+The table above reflects the current unreleased plain Ruby adapter implementation status.
 
-## Rails setup (intended, lands in v0.3)
+## Rails setup (intended v2 milestone)
 
 The Rails integration is not yet implemented, but the intended setup is:
 
 ```ruby
 # config/initializers/rlm.rb
 RLM.configure do |config|
-  config.root_lm = RubyLLM.chat(model: Rails.application.credentials.dig(:rlm, :root_model))
-  config.sub_lm  = RubyLLM.chat(model: Rails.application.credentials.dig(:rlm, :sub_model))
+  config.root_lm = RLM::Lm::RubyLLM.new(model: Rails.application.credentials.dig(:rlm, :root_model))
+  config.sub_lm = RLM::Lm::RubyLLM.new(model: Rails.application.credentials.dig(:rlm, :sub_model))
 
   config.sandbox = RLM::Sandbox::Subprocess.new   # development
   # config.sandbox = RLM::Sandbox::Docker.new     # production (v0.4)
@@ -245,10 +286,10 @@ Soft failures land on `result.status` instead of raising. Inspect `result.succes
 ## Development
 
 ```bash
-bundle install
-bundle exec rake test       # run the test suite
-bundle exec rubocop         # lint
-bundle exec rake            # test + rubocop
+zsh -lc 'source ~/.zshrc && eval "$(mise activate zsh)" && bundle install'
+zsh -lc 'source ~/.zshrc && eval "$(mise activate zsh)" && bundle exec rake test'
+zsh -lc 'source ~/.zshrc && eval "$(mise activate zsh)" && bundle exec rubocop'
+zsh -lc 'source ~/.zshrc && eval "$(mise activate zsh)" && bundle exec rake'
 ```
 
 ## Contributing
@@ -257,10 +298,10 @@ Issues and pull requests welcome at https://github.com/dpaluy/rlm.
 
 ## API reference
 
-RLM.rb is designed to integrate with these upstream libraries in future milestones. For provider or signature details, go to source:
+RLM.rb integrates with these upstream libraries. For provider or signature details, go to source:
 
-- [RubyLLM](https://github.com/crmne/ruby_llm), [Rails integration guide](https://rubyllm.com/rails/) for provider/chat/file API.
-- [dspy.rb](https://github.com/vicentereig/dspy.rb), [Signatures guide](https://vicentereig.github.io/dspy.rb/core-concepts/signatures/) for typed input/output contracts.
+- [RubyLLM](https://github.com/crmne/ruby_llm), [chat guide](https://rubyllm.com/chat/) for provider, chat, token, and cost APIs.
+- [dspy.rb](https://github.com/vicentereig/dspy.rb), [Signatures guide](https://oss.vicente.services/dspy.rb/core-concepts/signatures/) for typed input/output contracts.
 - The [Recursive Language Models](https://github.com/alexzhang13/rlm) reference implementation and the
   [DSPy RLM module](https://dspy.ai/api/modules/RLM/) for the underlying idea.
 

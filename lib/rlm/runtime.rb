@@ -82,8 +82,9 @@ module RLM
       parsed = call_sub_lm(signature, input, depth)
       raise ValidationError, "sub LM must return <rlm-final> in v0.2 mock runtime" unless parsed.final?
 
-      validate_output!(signature, parsed.content)
-      parsed.content
+      output = Signature.coerce_output(signature, parsed.content)
+      validate_output!(signature, output)
+      output
     end
 
     def record_tool_attempt!
@@ -153,11 +154,12 @@ module RLM
       before_cost = candidate.cost_cents if candidate.respond_to?(:cost_cents)
       response = candidate.call(prompt: prompt, signature: Signature.name_for(checked_signature), depth: call_depth)
       @llm_calls += 1
-      trace.record(
-        event_type,
+      payload = {
         signature: Signature.name_for(checked_signature),
         cost_cents: cost_delta(candidate, before_cost)
-      )
+      }
+      payload[:usage] = candidate.last_usage if candidate.respond_to?(:last_usage) && candidate.last_usage
+      trace.record(event_type, payload)
       ensure_cost_budget!
       response
     end
@@ -187,12 +189,13 @@ module RLM
     end
 
     def complete(output)
-      ensure_output_budget!(output)
-      errors = validate_output(signature, output)
+      coerced_output = Signature.coerce_output(signature, output)
+      ensure_output_budget!(coerced_output)
+      errors = validate_output(signature, coerced_output)
       return validation_failure(errors) unless errors.empty?
 
       trace.record(:run_completed, status: :completed)
-      finish(:completed, output: output)
+      finish(:completed, output: coerced_output)
     end
 
     def validate_root_input!

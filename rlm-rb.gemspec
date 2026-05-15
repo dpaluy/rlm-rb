@@ -11,14 +11,13 @@ Gem::Specification.new do |spec|
   spec.summary = "Ruby runtime spine for typed, sandbox-oriented, auditable AI jobs over large application context."
   spec.description = <<~DESC.strip
     RLM.rb is a Ruby runtime spine for Recursive Language Models. It runs bounded, typed, auditable AI jobs
-    over files, records, and application context in the v0.2 mock runtime. RLM.rb is designed to integrate with RubyLLM
-    for provider access and dspy.rb for typed signatures in future milestones; current support includes the recursive
-    prompt loop, file/context mounting, recursive sub-LM calls, typed final output, budget controls, trace events, and a
-    best-effort trace_store hook.
+    over files, records, and application context. RLM.rb includes RubyLLM provider access, a dspy.rb signature adapter,
+    the recursive prompt loop, file/context mounting, recursive sub-LM calls, typed final output, budget controls,
+    trace events, and a best-effort trace_store hook.
   DESC
   spec.homepage = "https://github.com/dpaluy/rlm-rb"
   spec.license = "MIT"
-  spec.required_ruby_version = ">= 3.2.0"
+  spec.required_ruby_version = ">= 3.3.0"
 
   spec.metadata["rubygems_mfa_required"] = "true"
   spec.metadata["source_code_uri"] = spec.homepage
@@ -26,17 +25,24 @@ Gem::Specification.new do |spec|
   spec.metadata["bug_tracker_uri"] = "#{spec.homepage}/issues"
 
   gemspec = File.basename(__FILE__)
-  spec.files = IO.popen(%w[git ls-files -z], chdir: __dir__, err: IO::NULL) do |ls|
-    ls.readlines("\x0", chomp: true).reject do |f|
-      (f == gemspec) ||
-        f.start_with?(*%w[
-                        test/ spec/ bin/ Gemfile .gitignore .github/ .rubocop.yml
-                        docs/ .agents/ AGENTS.md CLAUDE.md Rakefile .yardopts
-                      ])
-    end
+  tracked_files = IO.popen(%w[git ls-files -z], chdir: __dir__, err: IO::NULL) do |ls|
+    ls.readlines("\x0", chomp: true)
+  end
+  working_tree_files = Dir.chdir(__dir__) do
+    Dir["lib/**/*", "README.md", "CHANGELOG.md", "LICENSE.txt"].select { |path| File.file?(path) }
+  end
+  spec.files = (tracked_files + working_tree_files).uniq.reject do |f|
+    (f == gemspec) ||
+      f.start_with?(*%w[
+                      test/ spec/ bin/ Gemfile .gitignore .github/ .rubocop.yml
+                      docs/ .agents/ AGENTS.md CLAUDE.md Rakefile .yardopts
+                    ])
   end
   spec.require_paths = ["lib"]
   spec.extra_rdoc_files = Dir["README.md", "CHANGELOG.md", "LICENSE.txt"]
 
+  spec.add_dependency "bigdecimal", "~> 3.2"
+  spec.add_dependency "dspy", "~> 1.0"
   spec.add_dependency "logger", "~> 1.6"
+  spec.add_dependency "ruby_llm", "~> 1.15"
 end

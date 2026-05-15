@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `RLM::Lm::RubyLLM` provider adapter for root and sub-LM calls through RubyLLM.
+- `RLM::Signature::Dspy` adapter for wrapping dspy.rb signatures behind the existing RLM signature protocol.
+- `RLM::Signature.coerce_output` hook for normalizing parsed final output before validation.
+- Optional `usage` payloads on `:root_lm_called` and `:sub_lm_called` trace events for adapters that expose token
+  and cost metadata.
 - `RLM::CodeExtractor` for strict `<rlm-code>` / `<rlm-final>` response parsing.
 - `RLM::Lm::Mock` for deterministic runtime-spine tests.
 - `RLM::PromptBuilder` for deterministic strict prompt construction from signatures, inputs, context
@@ -31,6 +36,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Sandbox cleanup proven across all failure modes (success, validation, parse, provider, budget, sandbox errors).
 - `RLM::Sandbox::UnsafeInProcess` serializes process-global stream capture with a mutex while remaining dev/test-only
   and unsuitable for production isolation.
+
+### Changed
+
+- Ruby compatibility now requires Ruby `>= 3.3.0` because dspy.rb support is part of the plain Ruby milestone.
+- Runtime final-output validation now runs after signature-level output coercion.
+
+### Fixed
+
+- Unknown RubyLLM provider costs are recorded as `cost_known: false`, contribute `0` cents for that call, and do not
+  crash cost accounting.
 
 ## [0.1.0] - 2026-05-12
 

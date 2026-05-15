@@ -31,6 +31,12 @@ module RLM
       validate_payload(signature, output, :validate_output)
     end
 
+    def coerce_output(signature, output)
+      return signature.coerce_output(output) if signature.respond_to?(:coerce_output)
+
+      output
+    end
+
     def assert_valid_input!(signature, input)
       errors = validate_input(signature, input)
       raise ValidationError, errors.join(", ") unless errors.empty?

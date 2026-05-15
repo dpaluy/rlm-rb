@@ -138,9 +138,45 @@ class RLM::RuntimeTest < Minitest::Test
     def self.validate_output(output) = output.key?(:summary) || output.key?("summary") ? [] : ["summary is required"]
   end
 
+  SymbolOutputSignature = Class.new do
+    def self.name = "SymbolOutputSignature"
+    def self.description = "Coerces string-keyed JSON into symbol-keyed output"
+    def self.input_fields = { text: :string }
+    def self.output_fields = { summary: :string }
+    def self.validate_input(input) = input.key?(:text) || input.key?("text") ? [] : ["text is required"]
+    def self.validate_output(output) = output.key?(:summary) ? [] : ["summary is required"]
+    def self.coerce_output(output) = output.transform_keys(&:to_sym)
+  end
+
+  UsageLm = Class.new do
+    attr_reader :cost_cents, :last_usage
+
+    def initialize(responses:, usage:, cost_cents: 0)
+      @responses = responses.dup
+      @usage = usage
+      @cost_cents_per_call = cost_cents
+      @cost_cents = 0
+      @last_usage = nil
+    end
+
+    def call(prompt:, **)
+      raise RLM::ProviderError, "prompt must be a String" unless prompt.is_a?(String)
+
+      @cost_cents += @cost_cents_per_call
+      @last_usage = @usage
+      @responses.shift
+    end
+  end
+
   FailingTool = Class.new(RLM::Tool) do
     def call
       raise RLM::ToolError, "tool boom"
+    end
+  end
+
+  InvalidCoercingRootSignature = Class.new(RootSignature) do
+    def self.coerce_output(_output)
+      { "wrong" => "shape" }
     end
   end
 
@@ -176,6 +212,61 @@ class RLM::RuntimeTest < Minitest::Test
     assert result.success?
     assert_equal({ "summary" => "done" }, result.output)
     assert sandbox.cleanup_called
+  end
+
+  def test_root_lm_trace_includes_usage_when_available
+    usage = { model_id: "openai/gpt-5-mini", input_tokens: 10, output_tokens: 4, cost_cents: 2, cost_known: true }
+    lm = UsageLm.new(responses: ['<rlm-final>{"summary":"done"}</rlm-final>'], usage: usage, cost_cents: 2)
+
+    result = RLM.predict(RootSignature, input: { text: "hello" }, lm: lm, sandbox: tracking_sandbox)
+
+    event = result.trace.events.find { |candidate| candidate[:type] == :root_lm_called }
+    assert_equal usage, event[:payload][:usage]
+    assert_equal 2, event[:payload][:cost_cents]
+  end
+
+  def test_sub_lm_trace_includes_usage_when_available
+    usage = { model_id: "openai/gpt-5-mini", input_tokens: 8, output_tokens: 5, cost_cents: 3, cost_known: true }
+    lm = RLM::Lm::Mock.new(responses: [root_code_response])
+    sub_lm = UsageLm.new(responses: ['<rlm-final>{"summary":"sub ok"}</rlm-final>'], usage: usage, cost_cents: 3)
+
+    result = RLM.predict(
+      RootSignature,
+      input: { text: "hello" },
+      lm: lm,
+      sub_lm: sub_lm,
+      sandbox: tracking_sandbox,
+      signatures: [SubSignature],
+      limits: RLM::Limits.new(max_iterations: 2, max_llm_calls: 2)
+    )
+
+    event = result.trace.events.find { |candidate| candidate[:type] == :sub_lm_called }
+    assert_equal usage, event[:payload][:usage]
+    assert_equal 3, event[:payload][:cost_cents]
+  end
+
+  def test_mock_lm_trace_omits_usage
+    result = RLM.predict(
+      RootSignature,
+      input: { text: "hello" },
+      lm: RLM::Lm::Mock.new(responses: ['<rlm-final>{"summary":"done"}</rlm-final>']),
+      sandbox: tracking_sandbox
+    )
+
+    event = result.trace.events.find { |candidate| candidate[:type] == :root_lm_called }
+    refute_includes event[:payload], :usage
+  end
+
+  def test_root_final_output_is_coerced_before_validation
+    result = RLM.predict(
+      SymbolOutputSignature,
+      input: { text: "hello" },
+      lm: RLM::Lm::Mock.new(responses: ['<rlm-final>{"summary":"done"}</rlm-final>']),
+      sandbox: tracking_sandbox
+    )
+
+    assert result.success?
+    assert_equal({ summary: "done" }, result.output)
   end
 
   def test_budget_exhaustion_returns_budget_result
@@ -237,6 +328,18 @@ class RLM::RuntimeTest < Minitest::Test
     assert_equal :provider_error, result.status
     assert_instance_of RLM::ProviderError, result.error
     assert sandbox.cleanup_called
+  end
+
+  def test_invalid_coercion_result_fails_closed_through_validation
+    result = RLM.predict(
+      InvalidCoercingRootSignature,
+      input: { text: "hello" },
+      lm: RLM::Lm::Mock.new(responses: ['<rlm-final>{"summary_text":"done"}</rlm-final>']),
+      sandbox: tracking_sandbox
+    )
+
+    assert_equal :failed_validation, result.status
+    assert_equal ["summary is required"], result.validation_errors
   end
 
   def test_budget_exhaustion_at_llm_budget_cleans_up_sandbox
@@ -377,6 +480,34 @@ class RLM::RuntimeTest < Minitest::Test
 
     assert_equal :aborted, result.status
     assert sandbox.cleanup_called
+  end
+
+  def test_sub_lm_output_is_coerced_before_returning_to_sandbox_code
+    root_signature = Class.new(RootSignature) do
+      def self.validate_output(output) = output.key?(:summary) ? [] : ["summary is required"]
+    end
+    root_signature.define_singleton_method(:name) { "RootSymbolSignature" }
+    sub_signature = Class.new(SymbolOutputSignature)
+    sub_signature.define_singleton_method(:name) { "SubSymbolSignature" }
+    root_response = <<~RESPONSE
+      <rlm-code>
+        sub = predict("SubSymbolSignature", { "text" => "hello" })
+        submit({ summary: sub.fetch(:summary) })
+      </rlm-code>
+    RESPONSE
+
+    result = RLM.predict(
+      root_signature,
+      input: { text: "hello" },
+      lm: RLM::Lm::Mock.new(responses: [root_response]),
+      sub_lm: RLM::Lm::Mock.new(responses: ['<rlm-final>{"summary":"sub ok"}</rlm-final>']),
+      sandbox: tracking_sandbox,
+      signatures: [sub_signature],
+      limits: RLM::Limits.new(max_iterations: 2, max_llm_calls: 2)
+    )
+
+    assert result.success?
+    assert_equal({ summary: "sub ok" }, result.output)
   end
 
   def test_max_sub_lm_calls_blocks_recursive_subcalls
