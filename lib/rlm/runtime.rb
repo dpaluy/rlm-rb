@@ -16,6 +16,7 @@ require_relative "runtime/signature_registry"
 require_relative "runtime/validation"
 require_relative "signature"
 require_relative "trace"
+require_relative "tool_registry"
 
 module RLM
   class Runtime
@@ -47,7 +48,7 @@ module RLM
       @sandbox = sandbox
       @limits = limits || Limits.new
       @context = context || build_context(@input)
-      @tools = Array(tools)
+      @tools = tools.is_a?(ToolRegistry) ? tools : Array(tools)
       @skills = Array(skills)
       @validators = Array(validators)
       @signatures = SignatureRegistry.build(signature, signatures)

@@ -213,6 +213,7 @@ Rails integration is not yet implemented. Rails remains a v2 milestone tracked i
 | `RLM::Sandbox::Subprocess` | Ready for local process isolation; supports timeout, stdout/stderr capture and caps, exit status capture, tempdir cleanup, and bridge-proxied helper calls |
 | `RLM::Sandbox::UnsafeInProcess` | Ready for dev/test only; executes in host process and mutates global streams during serialized capture |
 | `RLM::Tool` base class with category DSL | Ready |
+| `RLM::ToolRegistry` | Ready for read-only application tool registration |
 | Error hierarchy | Ready |
 | `RLM::Predict#call` | Delegates to `RLM::Runtime` |
 | `RLM::Runtime` mock loop | Ready (with `RLM::Lm::Mock`) |
@@ -250,6 +251,32 @@ result = RLM.predict(
 store.fetch(result.trace.id) # => result
 store.all                   # => [result]
 ```
+
+## Tools
+
+Tools are explicit read-only capabilities exposed to generated runtime code through `tool(tool_name, input_hash)`.
+Register tool classes or instances directly, or group them in `RLM::ToolRegistry`.
+
+```ruby
+class VendorLookup < RLM::Tool
+  description "Look up vendor metadata."
+
+  def call(vendor_id:)
+    { vendor_id: vendor_id, name: "ACME" }
+  end
+end
+
+tools = RLM::ToolRegistry.new([VendorLookup])
+
+result = RLM.predict(
+  InvoiceExtraction,
+  input: { vendor_id: 123, invoice_text: "Invoice total: $42" },
+  tools: tools
+)
+```
+
+`RLM::ToolRegistry` only accepts tools whose category is `:read_only`. Write-capable tools and authorization hooks
+remain future milestones.
 
 ## Eval export
 

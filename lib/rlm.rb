@@ -27,6 +27,7 @@ require_relative "rlm/sandbox/subprocess"
 require_relative "rlm/sandbox/unsafe_in_process"
 require_relative "rlm/runtime"
 require_relative "rlm/tool"
+require_relative "rlm/tool_registry"
 require_relative "rlm/config"
 require_relative "rlm/predict"
 

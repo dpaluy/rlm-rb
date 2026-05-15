@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `RLM::EvalExample` and `RLM::EvalExporter` for converting terminal results or traces into JSONL eval examples.
 - `RLM::Eval.run` for in-memory golden dataset evaluation with caller-supplied metrics.
 - `RLM::TraceStore` and `RLM::TraceStore::Memory` for plain Ruby terminal result storage.
+- `RLM::ToolRegistry` for registering read-only application tools.
 
 ### Changed
 

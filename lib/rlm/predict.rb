@@ -22,7 +22,7 @@ module RLM
       @signature = signature
       @lm = lm || RLM.config.root_lm
       @sub_lm = sub_lm || RLM.config.sub_lm
-      @tools = Array(tools)
+      @tools = normalize_tools(tools)
       @skills = Array(skills)
       @sandbox = sandbox || RLM.config.sandbox
       @limits = limits || RLM.config.default_limits
@@ -45,6 +45,12 @@ module RLM
         signatures: signatures,
         trace_store: trace_store
       ).call
+    end
+
+    private
+
+    def normalize_tools(candidate)
+      candidate.is_a?(ToolRegistry) ? candidate : Array(candidate)
     end
   end
 end

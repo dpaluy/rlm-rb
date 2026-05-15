@@ -21,6 +21,13 @@ class RLM::Runtime::BridgeToolTest < Minitest::Test
     assert_equal({ id: 8, name: "Acme" }, bridge.tool("LookupVendor", { vendor_id: 8 }))
   end
 
+  def test_tool_executes_registry_entry
+    registry = RLM::ToolRegistry.new([LookupVendor])
+    bridge = build_bridge(tools: registry)
+
+    assert_equal({ id: 9, name: "Acme" }, bridge.tool("LookupVendor", { vendor_id: 9 }))
+  end
+
   def test_tool_rejects_unknown_tool
     bridge = build_bridge
 

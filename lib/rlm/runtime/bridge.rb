@@ -3,6 +3,7 @@
 require_relative "../errors"
 require_relative "../signature"
 require_relative "../trace"
+require_relative "../tool_registry"
 
 module RLM
   class Runtime
@@ -13,7 +14,7 @@ module RLM
         @runtime = runtime
         @context = context
         @trace = trace
-        @tools = Array(tools)
+        @tools = tools.is_a?(ToolRegistry) ? tools : Array(tools)
         @signatures = signatures
         @depth = depth
         @submitted_output = nil
@@ -94,6 +95,8 @@ module RLM
       end
 
       def find_tool(tool_name)
+        return tools.fetch(tool_name) if tools.is_a?(ToolRegistry)
+
         name = tool_name.to_s
         tools.find do |tool|
           tool_names = [tool_class(tool).registry_name, tool_class(tool).name]
