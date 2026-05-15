@@ -11,9 +11,9 @@ It integrates with [RubyLLM](https://github.com/crmne/ruby_llm) for provider acc
 recursive execution spine: prompt loop, file and context mounting, recursive sub-LM calls, typed final output, budget
 controls, trace events, a RubyLLM LM adapter, a dspy signature adapter, and a minimal trace persistence hook.
 
-> **Status: Unreleased plain Ruby adapter milestone.** The released gem is v0.1.0 (skeleton). The main branch contains
-> `RLM::Lm::RubyLLM`, `RLM::Signature::Dspy`, `RLM::Lm::Mock`, `RLM::Sandbox::UnsafeInProcess`, budget enforcement and
-> budget policies, trace events, recursive `predict`, prompt building, and a best-effort `trace_store` callable hook.
+> **Status: Plain Ruby adapter milestone.** The released gem is v0.2.0. It includes `RLM::Lm::RubyLLM`,
+> `RLM::Signature::Dspy`, `RLM::Lm::Mock`, `RLM::Sandbox::UnsafeInProcess`, budget enforcement and budget policies,
+> trace events, recursive `predict`, prompt building, and a best-effort `trace_store` callable hook.
 > Rails integration, subprocess/container sandboxing, tools, skills, cache, telemetry, and evals remain future
 > milestones. `UnsafeInProcess` is dev/test-only and executes generated code in the host Ruby process.
 
@@ -114,6 +114,31 @@ result.trace.events.find { |event| event[:type] == :root_lm_called }[:payload][:
 Usage metadata is recorded on `:root_lm_called` and `:sub_lm_called` trace events when an adapter exposes it. It is not
 duplicated onto `RLM::Result` in this milestone. RubyLLM cost helpers can return `nil` when model pricing is unknown;
 RLM records `cost_known: false`, contributes `0` cents for that call, and cannot enforce unknown provider cost.
+
+## Run a Live Plain Ruby Example
+
+The gem ships one opt-in live example at `examples/plain_ruby_invoice_extraction.rb`. By default it exits before
+provider credential checks, LM configuration, or `RLM.predict`, even if provider credentials are already present:
+
+```bash
+bundle exec ruby examples/plain_ruby_invoice_extraction.rb
+```
+
+To run the live path, configure provider credentials and opt in explicitly:
+
+```bash
+RLM_RUN_LIVE_EXAMPLE=1 OPENAI_API_KEY="$OPENAI_API_KEY" \
+  bundle exec ruby examples/plain_ruby_invoice_extraction.rb
+```
+
+The example uses `RLM::Lm::RubyLLM` for root and sub-LM calls, wraps a real `DSPy::Signature` with
+`RLM::Signature::Dspy`, calls the public `RLM.predict(...)` API, and prints result status, typed output, trace id, cost,
+and usage payloads when RubyLLM exposes them. Set `RLM_EXAMPLE_MODEL` and `RLM_EXAMPLE_SUB_MODEL` to override the
+default model.
+
+The live example uses `RLM::Sandbox::UnsafeInProcess`, which is dev/test-only and runs generated Ruby code in the host
+process. Rails integration, subprocess/container sandboxing, tools, skills, evals, telemetry, and production execution
+examples remain future milestones.
 
 ## Mock Runtime API
 

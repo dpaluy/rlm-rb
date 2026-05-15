@@ -29,7 +29,7 @@ Gem::Specification.new do |spec|
     ls.readlines("\x0", chomp: true)
   end
   working_tree_files = Dir.chdir(__dir__) do
-    Dir["lib/**/*", "README.md", "CHANGELOG.md", "LICENSE.txt"].select { |path| File.file?(path) }
+    Dir["lib/**/*", "examples/**/*", "README.md", "CHANGELOG.md", "LICENSE.txt"].select { |path| File.file?(path) }
   end
   spec.files = (tracked_files + working_tree_files).uniq.reject do |f|
     (f == gemspec) ||

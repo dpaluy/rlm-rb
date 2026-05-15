@@ -7,8 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-05-15
+
 ### Added
 
+- Shipped `examples/plain_ruby_invoice_extraction.rb` as an opt-in live plain Ruby smoke example for real RubyLLM
+  and dspy adapters.
 - `RLM::Lm::RubyLLM` provider adapter for root and sub-LM calls through RubyLLM.
 - `RLM::Signature::Dspy` adapter for wrapping dspy.rb signatures behind the existing RLM signature protocol.
 - `RLM::Signature.coerce_output` hook for normalizing parsed final output before validation.
