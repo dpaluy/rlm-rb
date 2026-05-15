@@ -45,7 +45,8 @@ module RLM
       trace_store: nil,
       tool_authorizer: nil,
       cache: nil,
-      telemetry: nil
+      telemetry: nil,
+      response_protocol: ResponseProtocol::DEFAULT
     )
       @signature = signature
       @input = input || {}
@@ -63,11 +64,9 @@ module RLM
       @tool_authorizer = tool_authorizer
       @cache = cache
       @telemetry = telemetry || Telemetry.default
+      @response_protocol = response_protocol
       @trace = Trace.new
-      @iterations = 0
-      @llm_calls = 0
-      @sub_lm_calls = 0
-      @tool_calls = 0
+      reset_counters
       @last_submitted_output = nil
     end
 
@@ -128,6 +127,14 @@ module RLM
 
     attr_reader :signature, :input, :lm, :sub_lm, :context, :tools, :skills,
                 :sandbox, :limits, :validators, :signatures, :depth, :trace,
-                :iterations, :llm_calls, :sub_lm_calls, :trace_store, :tool_authorizer, :cache, :telemetry
+                :iterations, :llm_calls, :sub_lm_calls, :trace_store, :tool_authorizer, :cache, :telemetry,
+                :response_protocol
+
+    def reset_counters
+      @iterations = 0
+      @llm_calls = 0
+      @sub_lm_calls = 0
+      @tool_calls = 0
+    end
   end
 end

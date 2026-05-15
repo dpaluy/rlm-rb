@@ -21,6 +21,7 @@ class RLM::ConfigTest < Minitest::Test
     assert_kind_of RLM::Sandbox::Mock, config.sandbox
     assert_kind_of RLM::Limits, config.default_limits
     assert_nil config.cache
+    assert_equal RLM::ResponseProtocol::DEFAULT, config.response_protocol
   end
 
   def test_logger_falls_back_to_stderr_logger_without_rails

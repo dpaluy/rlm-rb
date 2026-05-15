@@ -18,10 +18,23 @@ class RLM::ResponseProtocolTest < Minitest::Test
     instructions = RLM::ResponseProtocol.output_instructions
 
     RLM::ResponseProtocol::TYPES.each do |type|
-      RLM::ResponseProtocol.tags_for(type).each do |tag|
+      RLM::ResponseProtocol::Tags.tags_for(type).each do |tag|
         assert_includes instructions, tag
       end
     end
+  end
+
+  def test_default_protocol_preserves_tag_protocol
+    assert_equal RLM::ResponseProtocol::Tags, RLM::ResponseProtocol::DEFAULT
+    assert_equal RLM::ResponseProtocol::Tags.output_instructions, RLM::ResponseProtocol.output_instructions
+  end
+
+  def test_json_protocol_instructions_describe_json_envelope
+    instructions = RLM::ResponseProtocol::JSON.output_instructions
+
+    assert_includes instructions, '{"type":"code"'
+    assert_includes instructions, '{"type":"final"'
+    assert_includes instructions, "Return exactly one JSON object"
   end
 
   def test_response_protocol_can_be_required_directly

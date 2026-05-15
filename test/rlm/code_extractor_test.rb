@@ -24,6 +24,30 @@ class RLM::CodeExtractorTest < Minitest::Test
     assert_equal({ "ok" => true, "items" => [1, 2] }, result.content)
   end
 
+  def test_extracts_json_protocol_code
+    result = RLM::CodeExtractor.extract(
+      '{"type":"code","content":"submit({\\"summary\\"=>\\"ok\\"})"}',
+      protocol: RLM::ResponseProtocol::JSON
+    )
+
+    assert_equal :code, result.type
+    assert_equal 'submit({"summary"=>"ok"})', result.content
+  end
+
+  def test_extracts_json_protocol_final_output
+    result = RLM::CodeExtractor.extract(
+      '{"type":"final","content":{"summary":"done"}}',
+      protocol: RLM::ResponseProtocol::JSON
+    )
+
+    assert_equal :final, result.type
+    assert_equal({ "summary" => "done" }, result.content)
+  end
+
+  def test_json_protocol_rejects_non_string_code_content
+    assert_parse_error('{"type":"code","content":{"ruby":"puts 1"}}', protocol: RLM::ResponseProtocol::JSON)
+  end
+
   def test_permits_surrounding_whitespace
     result = RLM::CodeExtractor.extract("\n  <rlm-code>1 + 1</rlm-code>\n\t")
 
@@ -87,9 +111,9 @@ class RLM::CodeExtractorTest < Minitest::Test
 
   private
 
-  def assert_parse_error(response)
+  def assert_parse_error(response, protocol: RLM::ResponseProtocol::DEFAULT)
     assert_raises(RLM::ParseError) do
-      RLM::CodeExtractor.extract(response)
+      RLM::CodeExtractor.extract(response, protocol: protocol)
     end
   end
 end

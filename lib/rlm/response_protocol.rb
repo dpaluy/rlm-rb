@@ -1,38 +1,31 @@
 # frozen_string_literal: true
 
 require_relative "errors"
+require_relative "response_protocol/tags"
+require_relative "response_protocol/json"
 
 module RLM
   module ResponseProtocol
-    CODE_OPEN = "<rlm-code>"
-    CODE_CLOSE = "</rlm-code>"
-    FINAL_OPEN = "<rlm-final>"
-    FINAL_CLOSE = "</rlm-final>"
-    KNOWN_TAG_PATTERN = %r{</?rlm-(?:code|final)>}
-    TYPES = %i[code final].freeze
+    DEFAULT = Tags
+    TYPES = Tags::TYPES
+    CODE_OPEN = Tags::CODE_OPEN
+    CODE_CLOSE = Tags::CODE_CLOSE
+    FINAL_OPEN = Tags::FINAL_OPEN
+    FINAL_CLOSE = Tags::FINAL_CLOSE
+    KNOWN_TAG_PATTERN = Tags::KNOWN_TAG_PATTERN
 
     module_function
 
     def tags_for(type)
-      case type
-      when :code then [CODE_OPEN, CODE_CLOSE]
-      when :final then [FINAL_OPEN, FINAL_CLOSE]
-      else raise ParseError, "unknown block type: #{type.inspect}"
-      end
+      Tags.tags_for(type)
     end
 
     def output_instructions
-      <<~PROMPT.chomp
-        ## Output Instructions
-        Return exactly one RLM response block and nothing else.
-        Use one of these forms:
-        #{CODE_OPEN}executable Ruby sandbox code#{CODE_CLOSE}
-        #{FINAL_OPEN}{"result":"final JSON answer"}#{FINAL_CLOSE}
-        Do not include prose, markdown fences, comments, or explanations outside the tags.
-        Do not emit both block types.
-        Do not emit duplicate or nested RLM tags.
-        The content inside #{FINAL_OPEN} must be valid JSON only.
-      PROMPT
+      DEFAULT.output_instructions
+    end
+
+    def extract(response)
+      DEFAULT.extract(response)
     end
   end
 end

@@ -64,6 +64,7 @@ RLM.configure do |config|
   config.sub_lm = RLM::Lm::RubyLLM.new(model: "gpt-5-mini")
 
   config.sandbox = RLM::Sandbox::Subprocess.new(timeout_seconds: 10)
+  config.response_protocol = RLM::ResponseProtocol::Tags
 
   config.default_limits = RLM::Limits.new(
     max_iterations: 8,
@@ -78,6 +79,10 @@ end
 
 `RLM::Lm::RubyLLM` creates a fresh `RubyLLM.chat` for each runtime LM call. That keeps RLM prompts standalone and
 prevents conversation history from leaking between root and sub-model calls.
+
+`RLM::ResponseProtocol::Tags` is the default rendering contract. It asks models to return exactly one
+`<rlm-code>` or `<rlm-final>` block. For models that behave better with a JSON envelope, use
+`RLM::ResponseProtocol::JSON` globally through `config.response_protocol` or per call through `response_protocol:`.
 
 ## Plain Ruby API
 
@@ -222,7 +227,7 @@ Rails integration is not yet implemented. Rails remains a v2 milestone tracked i
 | `RLM::Runtime` mock loop | Ready (with `RLM::Lm::Mock`) |
 | `RLM::PromptBuilder` | Ready (v0.2 contract) |
 | `RLM::CodeExtractor` | Ready |
-| `RLM::ResponseProtocol` | Ready for the default RLM tag rendering protocol |
+| `RLM::ResponseProtocol` | Ready for the default RLM tag rendering protocol and JSON response envelope |
 | `RLM::EvalExample` / `RLM::EvalExporter` | Ready for trace/result JSONL export |
 | `RLM::Eval.run` | Ready for in-memory golden dataset evaluation with caller-supplied metrics |
 | `RLM::Runtime::Bridge` | Ready for runtime-owned subcalls, tools, submission, file reads, and logging |

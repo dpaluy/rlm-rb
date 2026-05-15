@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-require "json"
-
 require_relative "response_protocol"
 
 module RLM
@@ -34,89 +32,21 @@ module RLM
       end
     end
 
-    def self.extract(response)
-      new.extract(response)
+    def self.extract(response, protocol: ResponseProtocol::DEFAULT)
+      new(protocol: protocol).extract(response)
+    end
+
+    def initialize(protocol: ResponseProtocol::DEFAULT)
+      @protocol = protocol
     end
 
     def extract(response)
-      raise ParseError, "response must be a String" unless response.is_a?(String)
-
-      tags = scan_tags(response)
-      raise ParseError, "response must contain one rlm-code or rlm-final block" if tags.empty?
-
-      type = block_type_for(tags)
-      block = extract_block(response, tags, type)
-
-      Result.new(type: type, content: parse_content(type, block))
+      parsed = protocol.extract(response)
+      Result.new(type: parsed.fetch(:type), content: parsed.fetch(:content))
     end
 
     private
 
-    def extract_block(response, tags, type)
-      open_tag, close_tag = tags_for(type)
-      opening, closing = matching_tags(tags, open_tag, close_tag)
-      raise ParseError, "#{close_tag} must appear after #{open_tag}" if closing[:begin] < opening[:end]
-
-      reject_non_whitespace_outside_block!(response, opening, closing)
-      content = response[opening[:end]...closing[:begin]]
-      reject_nested_tags!(content)
-      content
-    end
-
-    def matching_tags(tags, open_tag, close_tag)
-      open_tags = tags.select { |tag| tag[:text] == open_tag }
-      close_tags = tags.select { |tag| tag[:text] == close_tag }
-
-      raise ParseError, "response must contain exactly one #{open_tag} tag" unless open_tags.one?
-      raise ParseError, "response must contain exactly one #{close_tag} tag" unless close_tags.one?
-
-      [open_tags.first, close_tags.first]
-    end
-
-    def scan_tags(response)
-      response.to_enum(:scan, ResponseProtocol::KNOWN_TAG_PATTERN).map do
-        match = Regexp.last_match
-        { text: match[0], begin: match.begin(0), end: match.end(0) }
-      end
-    end
-
-    def block_type_for(tags)
-      has_code = tags.any? { |tag| code_tags.include?(tag[:text]) }
-      has_final = tags.any? { |tag| final_tags.include?(tag[:text]) }
-
-      raise ParseError, "response must not mix rlm-code and rlm-final blocks" if has_code && has_final
-
-      has_code ? :code : :final
-    end
-
-    def tags_for(type)
-      ResponseProtocol.tags_for(type)
-    end
-
-    def reject_non_whitespace_outside_block!(response, opening, closing)
-      before = response[0...opening[:begin]]
-      after = response[closing[:end]..]
-      return if before.match?(/\A\s*\z/) && after.match?(/\A\s*\z/)
-
-      raise ParseError, "response must contain only one rlm block and surrounding whitespace"
-    end
-
-    def reject_nested_tags!(content)
-      return unless content.match?(ResponseProtocol::KNOWN_TAG_PATTERN)
-
-      raise ParseError, "rlm blocks must not contain nested rlm tags"
-    end
-
-    def parse_content(type, content)
-      return content if type == :code
-
-      JSON.parse(content)
-    rescue JSON::ParserError => e
-      raise ParseError, "invalid JSON in rlm-final block: #{e.message}"
-    end
-
-    def code_tags = ResponseProtocol.tags_for(:code)
-
-    def final_tags = ResponseProtocol.tags_for(:final)
+    attr_reader :protocol
   end
 end

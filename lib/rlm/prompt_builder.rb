@@ -6,16 +6,24 @@ require_relative "response_protocol"
 
 module RLM
   class PromptBuilder
-    def self.build(signature, input:, context: nil, limits: nil, skills: [])
-      new(signature, input: input, context: context, limits: limits, skills: skills).call
+    def self.build(signature, input:, context: nil, limits: nil, skills: [], response_protocol: ResponseProtocol::DEFAULT)
+      new(
+        signature,
+        input: input,
+        context: context,
+        limits: limits,
+        skills: skills,
+        response_protocol: response_protocol
+      ).call
     end
 
-    def initialize(signature, input:, context: nil, limits: nil, skills: [])
+    def initialize(signature, input:, context: nil, limits: nil, skills: [], response_protocol: ResponseProtocol::DEFAULT)
       raise ConfigurationError, "signature is required" if signature.nil?
 
       @signature = signature
       @input = input || {}
       @skills = Array(skills)
+      @response_protocol = response_protocol
       @payload_sections = PayloadSections.new(context: context, limits: limits)
     end
 
@@ -40,7 +48,7 @@ module RLM
 
     private
 
-    attr_reader :signature, :input, :skills, :payload_sections
+    attr_reader :signature, :input, :skills, :response_protocol, :payload_sections
 
     def signature_section
       ["## Signature", signature_name].join("\n")
@@ -63,7 +71,7 @@ module RLM
     end
 
     def output_instructions_section
-      ResponseProtocol.output_instructions
+      response_protocol.output_instructions
     end
 
     def signature_name

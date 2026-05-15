@@ -29,12 +29,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Dependency-free `RLM::Skills::PDF` with subprocess `pdf_info` and `pdf_text_preview` helper support.
 - Dependency-free `RLM::Skills::HTML` with subprocess `html_text` and `html_links` helper support.
 - Runtime cache reuse for identical context file reads, read-only tool calls, and skill calls.
+- `RLM::ResponseProtocol::JSON` for models that should return `{"type":"code"|"final","content":...}` instead of
+  the default tag-delimited protocol.
 
 ### Changed
 
 - The shipped live plain Ruby example now uses `RLM::Sandbox::Subprocess` instead of the dev/test-only
   `UnsafeInProcess` backend.
 - README now documents RLM.rb's five architecture layers: interface, inference, rendering, call graph, and evals.
+- `RLM::ResponseProtocol::Tags` is now the explicit default response protocol while preserving the existing
+  `RLM::ResponseProtocol.output_instructions` and `tags_for` compatibility methods.
 
 ## [0.2.0] - 2026-05-15
 

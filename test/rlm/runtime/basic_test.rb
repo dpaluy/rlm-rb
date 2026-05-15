@@ -48,6 +48,22 @@ class RLM::RuntimeBasicTest < RuntimeTestCase
     assert sandbox.cleanup_called
   end
 
+  def test_json_response_protocol_completes_without_tag_blocks
+    lm = RLM::Lm::Mock.new(responses: ['{"type":"final","content":{"summary":"done"}}'])
+
+    result = RLM.predict(
+      RootSignature,
+      input: { text: "hello" },
+      lm: lm,
+      sandbox: tracking_sandbox,
+      response_protocol: RLM::ResponseProtocol::JSON
+    )
+
+    assert result.success?
+    assert_equal({ "summary" => "done" }, result.output)
+    assert_includes lm.prompts.first, "Return exactly one JSON object"
+  end
+
   def test_root_lm_trace_includes_usage_when_available
     usage = { model_id: "openai/gpt-5-mini", input_tokens: 10, output_tokens: 4, cost_cents: 2, cost_known: true }
     lm = UsageLm.new(responses: ['<rlm-final>{"summary":"done"}</rlm-final>'], usage: usage, cost_cents: 2)
