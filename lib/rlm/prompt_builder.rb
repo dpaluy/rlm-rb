@@ -6,15 +6,16 @@ require_relative "response_protocol"
 
 module RLM
   class PromptBuilder
-    def self.build(signature, input:, context: nil, limits: nil)
-      new(signature, input: input, context: context, limits: limits).call
+    def self.build(signature, input:, context: nil, limits: nil, skills: [])
+      new(signature, input: input, context: context, limits: limits, skills: skills).call
     end
 
-    def initialize(signature, input:, context: nil, limits: nil)
+    def initialize(signature, input:, context: nil, limits: nil, skills: [])
       raise ConfigurationError, "signature is required" if signature.nil?
 
       @signature = signature
       @input = input || {}
+      @skills = Array(skills)
       @payload_sections = PayloadSections.new(context: context, limits: limits)
     end
 
@@ -29,6 +30,7 @@ module RLM
         input_section
       ]
       sections << context_section(manifest) if manifest
+      sections << skills_section if skills.any?
       sections << limits_section(payload_limits) if payload_limits
       sections << helpers_section
       sections << safety_section
@@ -38,7 +40,7 @@ module RLM
 
     private
 
-    attr_reader :signature, :input, :payload_sections
+    attr_reader :signature, :input, :skills, :payload_sections
 
     def signature_section
       ["## Signature", signature_name].join("\n")
@@ -54,6 +56,10 @@ module RLM
 
     def limits_section(payload_limits)
       payload_sections.json_section("Limits", payload_limits)
+    end
+
+    def skills_section
+      payload_sections.json_section("Skills", skills.map(&:manifest))
     end
 
     def output_instructions_section

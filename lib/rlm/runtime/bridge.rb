@@ -1,15 +1,18 @@
 # frozen_string_literal: true
 
 require_relative "../errors"
-require_relative "../sandbox/context_limits"
 require_relative "../signature"
 require_relative "../trace"
 require_relative "../tool_registry"
+require_relative "bridge/files"
+require_relative "bridge/skills"
 require_relative "tool_resolution"
 
 module RLM
   class Runtime
     class Bridge
+      include Files
+      include Skills
       include ToolResolution
 
       attr_reader :submitted_output
@@ -19,6 +22,7 @@ module RLM
         trace:,
         runtime: nil,
         tools: [],
+        skills: [],
         signatures: {},
         tool_authorizer: nil,
         limits: nil,
@@ -28,6 +32,7 @@ module RLM
         @context = context
         @trace = trace
         @tools = tools.is_a?(ToolRegistry) ? tools : Array(tools)
+        @skills = Array(skills)
         @signatures = signatures
         @tool_authorizer = tool_authorizer
         @limits = limits || Limits.new
@@ -73,22 +78,6 @@ module RLM
         output
       end
 
-      def read_file(handle)
-        raise ValidationError, "file handle must be a String" unless handle.is_a?(String)
-
-        file = context.file_for(handle)
-        raise ValidationError, "Unknown file handle: #{handle}" if file.nil?
-
-        content = file.read
-        Sandbox::ContextLimits.new(context: context, limits: limits).validate_file_content!(file, content)
-        trace.record(:file_read, handle: handle, filename: file.filename, size_bytes: file.size_bytes)
-        content
-      end
-
-      def list_files
-        context.manifest[:files]
-      end
-
       def log(message)
         raise ValidationError, "log message must be a String" unless message.is_a?(String)
 
@@ -98,7 +87,7 @@ module RLM
 
       private
 
-      attr_reader :runtime, :context, :trace, :tools, :signatures, :tool_authorizer, :limits, :depth
+      attr_reader :runtime, :context, :trace, :tools, :skills, :signatures, :tool_authorizer, :limits, :depth
 
       def find_signature(signature_name)
         signatures[signature_name] || signatures[signature_name.to_s] || signatures[signature_name.to_sym]

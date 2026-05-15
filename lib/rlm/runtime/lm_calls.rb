@@ -7,7 +7,7 @@ module RLM
 
       def call_root_lm
         ensure_llm_budget!
-        prompt = PromptBuilder.build(signature, input: input, context: context, limits: limits)
+        prompt = PromptBuilder.build(signature, input: input, context: context, limits: limits, skills: skills)
         trace.record(:root_prompt_created, bytes: prompt.bytesize)
         response = call_lm(lm, :root_lm_called, signature, prompt, depth)
         CodeExtractor.extract(response)
@@ -16,7 +16,13 @@ module RLM
       def call_sub_lm(checked_signature, payload, sub_depth)
         ensure_llm_budget!
         ensure_sub_lm_budget!
-        prompt = PromptBuilder.build(checked_signature, input: payload, context: context, limits: limits)
+        prompt = PromptBuilder.build(
+          checked_signature,
+          input: payload,
+          context: context,
+          limits: limits,
+          skills: skills
+        )
         response = call_lm(sub_lm, :sub_lm_called, checked_signature, prompt, sub_depth)
         @sub_lm_calls += 1
         CodeExtractor.extract(response)

@@ -15,8 +15,8 @@ controls, trace events, a RubyLLM LM adapter, a dspy signature adapter, and a mi
 > `RLM::Signature::Dspy`, `RLM::Lm::Mock`, `RLM::Sandbox::Subprocess`, `RLM::Sandbox::UnsafeInProcess`,
 > budget enforcement and budget policies, trace events, recursive `predict`, prompt building, and a best-effort
 > `trace_store` callable hook, an in-memory trace store, JSONL eval export from traces/results, plus an in-memory eval
-> runner, identical recursive subcall caching, and optional telemetry spans. Rails integration, container/remote
-> sandboxing, tools, skills, and optimizer integration remain future milestones. `UnsafeInProcess` is dev/test-only
+> runner, identical recursive subcall caching, optional telemetry spans, and the plain Ruby CSV skill. Rails integration,
+> container/remote sandboxing, most skills, and optimizer integration remain future milestones. `UnsafeInProcess` is dev/test-only
 > and executes generated code in the host Ruby process.
 
 ## Why
@@ -150,8 +150,8 @@ and usage payloads when RubyLLM exposes them. Set `RLM_EXAMPLE_MODEL` and `RLM_E
 default model.
 
 The live example uses `RLM::Sandbox::Subprocess`, which runs generated Ruby in a separate local Ruby process and
-proxies runtime helpers back to the parent runtime. Rails integration, container/remote sandboxing, tools, skills,
-evals, telemetry, and production execution examples remain future milestones.
+proxies runtime helpers back to the parent runtime. Rails integration, container/remote sandboxing, broader skill packs,
+and production execution examples remain future milestones.
 
 ## Mock Runtime API
 
@@ -216,6 +216,7 @@ Rails integration is not yet implemented. Rails remains a v2 milestone tracked i
 | `RLM::Sandbox::UnsafeInProcess` | Ready for dev/test only; executes in host process and mutates global streams during serialized capture |
 | `RLM::Tool` base class with category and schema DSL | Ready |
 | `RLM::ToolRegistry` | Ready for read-only application tool registration |
+| `RLM::Skill` / `RLM::Skills::CSV` | Ready for dependency-free CSV context reads through `csv_rows` |
 | Error hierarchy | Ready |
 | `RLM::Predict#call` | Delegates to `RLM::Runtime` |
 | `RLM::Runtime` mock loop | Ready (with `RLM::Lm::Mock`) |
@@ -296,6 +297,21 @@ result = RLM.predict(
 `RLM::ToolRegistry` only accepts tools whose category is `:read_only`. A `tool_authorizer` callable can deny a
 read-only call before execution; return `true` to allow and `false`/`nil` to reject. Write-capable tools remain a future
 milestone.
+
+## CSV skill
+
+`RLM::Skills::CSV` exposes `csv_rows(handle, headers: true)` to generated subprocess code. It reads only context files
+by handle and returns JSON-serializable row hashes or arrays.
+
+```ruby
+invoice_csv = RLM::File.from_text("totals.csv", "name,total\nACME,42\n")
+
+result = RLM.predict(
+  InvoiceExtraction,
+  input: { invoice_csv: invoice_csv },
+  skills: [RLM::Skills::CSV.new]
+)
+```
 
 ## Eval export
 

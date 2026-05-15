@@ -16,6 +16,7 @@ module RLM
           context: context,
           trace: trace,
           tools: tools,
+          skills: skills,
           signatures: signatures,
           tool_authorizer: tool_authorizer,
           limits: limits,

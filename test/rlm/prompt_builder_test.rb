@@ -103,6 +103,14 @@ class RLM::PromptBuilderTest < Minitest::Test
     assert_includes prompt, "log(message)"
   end
 
+  def test_includes_skill_manifest_when_skills_are_present
+    prompt = RLM::PromptBuilder.build(:read_csv, input: {}, skills: [RLM::Skills::CSV.new])
+
+    assert_includes prompt, "## Skills"
+    assert_includes prompt, "csv_rows"
+    assert_includes prompt, "csv"
+  end
+
   def test_includes_safety_section
     prompt = RLM::PromptBuilder.build(:test, input: {})
 

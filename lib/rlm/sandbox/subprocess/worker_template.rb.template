@@ -73,6 +73,8 @@ class Scope
 
   def predict(signature_name, input_hash) = @protocol.call("predict", [signature_name, input_hash])
   def tool(tool_name, input_hash) = @protocol.call("tool", [tool_name, input_hash])
+  def skill(skill_name, method_name, input_hash) = @protocol.call("skill", [skill_name, method_name, input_hash])
+  def csv_rows(handle, headers: true) = skill("csv", "rows", { "handle" => handle, "headers" => headers })
   def submit(output_hash) = @protocol.call("submit", [output_hash])
   def read_file(handle) = @protocol.call("read_file", [handle])
   def list_files = @protocol.call("list_files", [])

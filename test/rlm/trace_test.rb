@@ -46,6 +46,7 @@ class RLM::TraceTest < Minitest::Test
       code_executed
       file_read
       tool_called
+      skill_called
       sub_lm_called
       output_submitted
       runtime_logged

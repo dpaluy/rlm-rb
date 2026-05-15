@@ -14,6 +14,7 @@ module RLM
       code_executed
       file_read
       tool_called
+      skill_called
       sub_lm_called
       output_submitted
       runtime_logged
@@ -50,6 +51,10 @@ module RLM
 
     def tool_calls
       events.select { |e| e[:type] == :tool_called }
+    end
+
+    def skill_calls
+      events.select { |e| e[:type] == :skill_called }
     end
 
     def files_read
