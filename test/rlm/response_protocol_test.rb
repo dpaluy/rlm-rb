@@ -52,4 +52,40 @@ class RLM::ResponseProtocolTest < Minitest::Test
     assert_includes output, "<rlm-code>"
     assert_includes output, "<rlm-final>"
   end
+
+  def test_optimizes_response_protocol_with_eval_scores
+    seen = []
+    predictor = lambda do |_signature, input:, response_protocol:, **_options|
+      seen << [input, response_protocol]
+      output = response_protocol == RLM::ResponseProtocol::JSON ? { "answer" => "ok" } : { "answer" => "no" }
+      RLM::Result.new(trace: RLM::Trace.new, status: :completed, output: output)
+    end
+
+    selection = RLM::ResponseProtocol.optimize(
+      Object,
+      examples: [{ input: { "question" => "x" }, expected_output: { "answer" => "ok" } }],
+      metric: ->(expected:, actual:, **) { expected == actual },
+      protocols: [RLM::ResponseProtocol::Tags, RLM::ResponseProtocol::JSON],
+      predictor: predictor,
+      lm: :mock
+    )
+
+    assert_equal RLM::ResponseProtocol::JSON, selection.best_protocol
+    assert_equal({ "Tags" => 0.0, "JSON" => 1.0 }, selection.scores)
+    assert_equal [
+      [{ "question" => "x" }, RLM::ResponseProtocol::Tags],
+      [{ "question" => "x" }, RLM::ResponseProtocol::JSON]
+    ], seen
+  end
+
+  def test_response_protocol_selection_requires_protocols
+    assert_raises(ArgumentError) do
+      RLM::ResponseProtocol.optimize(
+        Object,
+        examples: [],
+        metric: ->(**) { true },
+        protocols: []
+      )
+    end
+  end
 end

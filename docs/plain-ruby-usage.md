@@ -113,6 +113,8 @@ For models that behave better with a JSON envelope, use `RLM::ResponseProtocol::
 RLM.predict(signature, input: input, response_protocol: RLM::ResponseProtocol::JSON)
 ```
 
+Use `RLM::ResponseProtocol.optimize(...)` with eval examples to compare tag, JSON, XML, or custom protocols.
+
 The JSON protocol expects one object:
 
 ```json

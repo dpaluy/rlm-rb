@@ -4,6 +4,7 @@ require_relative "errors"
 require_relative "response_protocol/tags"
 require_relative "response_protocol/json"
 require_relative "response_protocol/xml"
+require_relative "response_protocol/selection"
 
 module RLM
   module ResponseProtocol
@@ -27,6 +28,10 @@ module RLM
 
     def extract(response)
       DEFAULT.extract(response)
+    end
+
+    def optimize(...)
+      SelectionOptimizer.optimize(...)
     end
   end
 end
