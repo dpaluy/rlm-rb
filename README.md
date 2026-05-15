@@ -14,9 +14,9 @@ controls, trace events, a RubyLLM LM adapter, a dspy signature adapter, and a mi
 > **Status: Plain Ruby adapter milestone.** The released gem is v0.2.0. It includes `RLM::Lm::RubyLLM`,
 > `RLM::Signature::Dspy`, `RLM::Lm::Mock`, `RLM::Sandbox::Subprocess`, `RLM::Sandbox::UnsafeInProcess`,
 > budget enforcement and budget policies, trace events, recursive `predict`, prompt building, and a best-effort
-> `trace_store` callable hook. Rails integration, container/remote sandboxing, tools, skills, cache, telemetry,
-> and evals remain future milestones. `UnsafeInProcess` is dev/test-only and executes generated code in the host
-> Ruby process.
+> `trace_store` callable hook, plus JSONL eval export from traces/results. Rails integration,
+> container/remote sandboxing, tools, skills, cache, telemetry, and optimizer integration remain future milestones.
+> `UnsafeInProcess` is dev/test-only and executes generated code in the host Ruby process.
 
 ## Why
 
@@ -35,7 +35,7 @@ RLM.rb separates production AI jobs into five layers:
 - **Inference**: provider and model calls through `RLM::Lm::*`, including `RLM::Lm::RubyLLM`.
 - **Rendering**: the RLM response protocol that renders tasks into prompts and parses `<rlm-code>` / `<rlm-final>`.
 - **Call graph**: recursive runtime execution through `RLM::Runtime`, sandbox helpers, tools, and sub-signatures.
-- **Evals**: future trace-driven evaluation and optimization over completed runs.
+- **Evals**: trace/result export through `RLM::EvalExample` and `RLM::EvalExporter`; optimization comes later.
 
 ## Install
 
@@ -218,6 +218,7 @@ Rails integration is not yet implemented. Rails remains a v2 milestone tracked i
 | `RLM::PromptBuilder` | Ready (v0.2 contract) |
 | `RLM::CodeExtractor` | Ready |
 | `RLM::ResponseProtocol` | Ready for the default RLM tag rendering protocol |
+| `RLM::EvalExample` / `RLM::EvalExporter` | Ready for trace/result JSONL export |
 | `RLM::Runtime::Bridge` | Ready for runtime-owned subcalls, tools, submission, file reads, and logging |
 | Budget enforcement and policies (`max_llm_calls`, `max_sub_lm_calls`, `max_tool_calls`, `max_iterations`, `max_cost_cents`, `max_runtime_seconds`, `on_budget_exceeded`) | Ready |
 | `trace_store` callable hook | Ready (best-effort; receives terminal `RLM::Result`) |
@@ -228,6 +229,33 @@ Rails integration is not yet implemented. Rails remains a v2 milestone tracked i
 | Rails Railtie, generator, migrations, ActiveStorage adapter | Future milestone |
 
 The table above reflects the current unreleased plain Ruby adapter implementation status.
+
+## Eval export
+
+Use the `trace_store` hook to collect terminal results, then export them as JSONL eval examples. Each line contains
+the original input, observed output, optional expected output, status, result metadata, and the trace payload needed to
+inspect LM calls, tool calls, file reads, validation errors, and cost.
+
+```ruby
+results = []
+
+result = RLM.predict(
+  InvoiceExtraction,
+  input: { invoice_text: "Invoice total: $42" },
+  trace_store: ->(terminal_result) { results << terminal_result }
+)
+
+jsonl = RLM::EvalExporter.to_jsonl(
+  result,
+  expected_output: { total_cents: 4200 },
+  metadata: { split: "train" }
+)
+
+File.write("tmp/rlm-evals.jsonl", "#{jsonl}\n")
+```
+
+`RLM::EvalExporter.to_jsonl(results)` accepts either `RLM::Result` or `RLM::Trace` records. Result records preserve
+the final validated output and runtime counters; trace-only records use the last submitted output when available.
 
 ## Rails setup (intended v2 milestone)
 
