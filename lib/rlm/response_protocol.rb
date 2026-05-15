@@ -3,6 +3,7 @@
 require_relative "errors"
 require_relative "response_protocol/tags"
 require_relative "response_protocol/json"
+require_relative "response_protocol/xml"
 
 module RLM
   module ResponseProtocol

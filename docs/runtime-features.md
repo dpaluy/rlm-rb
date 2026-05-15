@@ -1,7 +1,6 @@
 # Runtime Features
 
-This guide covers the plain Ruby runtime features around traces, tools, skills, evals, optimization, caching, and
-telemetry.
+This guide covers traces, tools, skills, evals, optimization, caching, response protocols, and telemetry.
 
 ## Trace Stores
 
@@ -139,12 +138,13 @@ RLM.predict(InvoiceExtraction, input: input, signatures: [VendorNormalization], 
 ```
 
 Plain Ruby hashes are supported. Cache objects that respond to `fetch` and `write` are also supported.
+## Response Protocols
+Default responses use `RLM::ResponseProtocol::Tags`; JSON and XML envelopes are also available.
 
 ## Telemetry
 
-`RLM::Telemetry` is dependency-free. When given a tracer object that responds to `in_span`, it records `rlm.run` and
-`rlm.lm_call` spans. Without a tracer, it is a no-op. If `opentelemetry-api` is present and configured, the default
-telemetry object uses `OpenTelemetry.tracer_provider.tracer("rlm-rb")`.
+`RLM::Telemetry` records `rlm.run` and `rlm.lm_call` spans through any tracer responding to `in_span`; without a tracer
+it is a no-op. If `opentelemetry-api` is configured, the default tracer is `OpenTelemetry.tracer_provider.tracer("rlm-rb")`.
 
-When `ActiveSupport::Notifications` is already loaded, the same names are emitted as notifications. Use
-`RLM::Telemetry::Dspy` to send RLM spans through dspy observability, including Langfuse when dspy is configured for it.
+When `ActiveSupport::Notifications` is loaded, the same names emit as notifications. `RLM::Telemetry::Dspy` forwards
+spans through dspy observability, including Langfuse when configured there.

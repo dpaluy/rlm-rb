@@ -37,6 +37,14 @@ class RLM::ResponseProtocolTest < Minitest::Test
     assert_includes instructions, "Return exactly one JSON object"
   end
 
+  def test_xml_protocol_instructions_describe_xml_envelope
+    instructions = RLM::ResponseProtocol::XML.output_instructions
+
+    assert_includes instructions, '<response type="code">'
+    assert_includes instructions, '<response type="final">'
+    assert_includes instructions, "Return exactly one XML document"
+  end
+
   def test_response_protocol_can_be_required_directly
     script = 'require "rlm/response_protocol"; puts RLM::ResponseProtocol.output_instructions'
     output = IO.popen([RbConfig.ruby, "-Ilib", "-e", script], &:read)
