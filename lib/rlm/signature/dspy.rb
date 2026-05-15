@@ -28,21 +28,13 @@ module RLM
         name
       end
 
-      def input_fields
-        fields_for(input_schema)
-      end
+      def input_fields = fields_for(input_schema)
 
-      def output_fields
-        fields_for(output_schema)
-      end
+      def output_fields = fields_for(output_schema)
 
-      def validate_input(input)
-        validate_payload(input, input_schema)
-      end
+      def validate_input(input) = validate_payload(input, input_schema)
 
-      def validate_output(output)
-        validate_payload(output, output_schema)
-      end
+      def validate_output(output) = validate_payload(output, output_schema)
 
       def coerce_output(output)
         return output unless output.is_a?(Hash)
@@ -73,7 +65,6 @@ module RLM
           schema = signature.public_send(method_name)
           return normalize_hash(schema) if schema.is_a?(Hash)
         end
-
         raise ConfigurationError, "dspy signature #{name} does not expose JSON schema metadata"
       end
 
