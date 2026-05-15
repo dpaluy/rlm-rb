@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Runtime integration coverage proving `RLM.predict(...)` can execute generated code through the subprocess sandbox.
 - `RLM::ResponseProtocol` as the named home for the default `<rlm-code>` / `<rlm-final>` rendering contract.
 - `RLM::EvalExample` and `RLM::EvalExporter` for converting terminal results or traces into JSONL eval examples.
+- `RLM::Eval.run` for in-memory golden dataset evaluation with caller-supplied metrics.
 
 ### Changed
 
