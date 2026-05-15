@@ -56,6 +56,7 @@ module RuntimeBridgeFixtures
     tools: [],
     signatures: {},
     tool_authorizer: nil,
+    limits: nil,
     depth: 0
   )
     RLM::Runtime::Bridge.new(
@@ -65,6 +66,7 @@ module RuntimeBridgeFixtures
       tools: tools,
       signatures: signatures,
       tool_authorizer: tool_authorizer,
+      limits: limits,
       depth: depth
     )
   end

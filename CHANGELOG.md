@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Identical recursive subcall caching through `cache:` / `RLM.config.cache`.
 - `RLM::TraceReplay` for reconstructing terminal `RLM::Result` objects from completed traces.
 - `RLM::Telemetry` for optional dependency-free run and LM-call spans with OpenTelemetry-compatible tracers.
+- Subprocess sandbox enforcement for `max_input_bytes`, `max_files`, and `max_file_bytes`.
 
 ### Changed
 

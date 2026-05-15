@@ -6,6 +6,7 @@ require "tmpdir"
 
 require_relative "subprocess/runner"
 require_relative "subprocess/worker_source"
+require_relative "context_limits"
 
 module RLM
   module Sandbox
@@ -33,7 +34,8 @@ module RLM
         @prepared
       end
 
-      def prepare(context:, tools:, skills:, runtime_bridge:)
+      def prepare(context:, tools:, skills:, runtime_bridge:, limits: nil)
+        ContextLimits.new(context: context, limits: limits).validate!
         @context = context
         @tools = tools
         @skills = skills

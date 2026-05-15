@@ -27,7 +27,7 @@ module RLM
         @prepared
       end
 
-      def prepare(context:, tools:, skills:, runtime_bridge:)
+      def prepare(context:, tools:, skills:, runtime_bridge:, **_options)
         @context = context
         @tools = tools
         @skills = skills

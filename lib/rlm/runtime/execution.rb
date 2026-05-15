@@ -18,9 +18,10 @@ module RLM
           tools: tools,
           signatures: signatures,
           tool_authorizer: tool_authorizer,
+          limits: limits,
           depth: depth
         )
-        sandbox.prepare(context: context, tools: tools, skills: skills, runtime_bridge: bridge)
+        sandbox.prepare(context: context, tools: tools, skills: skills, runtime_bridge: bridge, limits: limits)
         bridge
       end
 

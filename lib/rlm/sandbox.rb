@@ -3,7 +3,7 @@
 module RLM
   module Sandbox
     class Base
-      def prepare(context:, tools:, skills:, runtime_bridge:)
+      def prepare(context:, tools:, skills:, runtime_bridge:, limits: nil)
         raise NotImplementedError, "#{self.class} must implement #prepare"
       end
 

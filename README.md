@@ -212,7 +212,7 @@ Rails integration is not yet implemented. Rails remains a v2 milestone tracked i
 | `RLM::Result` with full status enum | Ready |
 | `RLM::TraceReplay` | Ready for deterministic terminal result reconstruction from traces |
 | `RLM::Sandbox::Base` interface + `Mock` backend | Ready |
-| `RLM::Sandbox::Subprocess` | Ready for local process isolation; supports timeout, stdout/stderr capture and caps, exit status capture, tempdir cleanup, and bridge-proxied helper calls |
+| `RLM::Sandbox::Subprocess` | Ready for local process isolation; supports timeout, stdout/stderr capture and caps, context input/file limits, exit status capture, tempdir cleanup, and bridge-proxied helper calls |
 | `RLM::Sandbox::UnsafeInProcess` | Ready for dev/test only; executes in host process and mutates global streams during serialized capture |
 | `RLM::Tool` base class with category and schema DSL | Ready |
 | `RLM::ToolRegistry` | Ready for read-only application tool registration |
@@ -465,7 +465,7 @@ Soft failures land on `result.status` instead of raising. Inspect `result.succes
 - `UnsafeInProcess` captures `$stdout`/`$stderr` by mutating process-global streams; capture is serialized with a mutex,
   but the sandbox remains unsuitable for production and should not be treated as concurrency-safe isolation.
 - `RLM::Sandbox::Subprocess` runs generated Ruby in a separate local process, enforces a wall-clock timeout, captures
-  stdout/stderr, records exit status, and removes its temp directory during cleanup.
+  stdout/stderr, enforces context input/file limits, records exit status, and removes its temp directory during cleanup.
 - Subprocess helper calls (`predict`, `tool`, `submit`, `read_file`, `list_files`, `log`) are proxied to the parent
   runtime over a narrow JSON-line protocol; mounted subprocess working-directory files remain a future milestone.
 - Production deployments should use a container sandbox or remote isolated runner (future milestone).

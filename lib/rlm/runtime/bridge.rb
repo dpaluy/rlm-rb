@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative "../errors"
+require_relative "../sandbox/context_limits"
 require_relative "../signature"
 require_relative "../trace"
 require_relative "../tool_registry"
@@ -13,13 +14,23 @@ module RLM
 
       attr_reader :submitted_output
 
-      def initialize(context:, trace:, runtime: nil, tools: [], signatures: {}, tool_authorizer: nil, depth: 0)
+      def initialize(
+        context:,
+        trace:,
+        runtime: nil,
+        tools: [],
+        signatures: {},
+        tool_authorizer: nil,
+        limits: nil,
+        depth: 0
+      )
         @runtime = runtime
         @context = context
         @trace = trace
         @tools = tools.is_a?(ToolRegistry) ? tools : Array(tools)
         @signatures = signatures
         @tool_authorizer = tool_authorizer
+        @limits = limits || Limits.new
         @depth = depth
         @submitted_output = nil
       end
@@ -69,6 +80,7 @@ module RLM
         raise ValidationError, "Unknown file handle: #{handle}" if file.nil?
 
         content = file.read
+        Sandbox::ContextLimits.new(context: context, limits: limits).validate_file_content!(file, content)
         trace.record(:file_read, handle: handle, filename: file.filename, size_bytes: file.size_bytes)
         content
       end
@@ -86,7 +98,7 @@ module RLM
 
       private
 
-      attr_reader :runtime, :context, :trace, :tools, :signatures, :tool_authorizer, :depth
+      attr_reader :runtime, :context, :trace, :tools, :signatures, :tool_authorizer, :limits, :depth
 
       def find_signature(signature_name)
         signatures[signature_name] || signatures[signature_name.to_s] || signatures[signature_name.to_sym]

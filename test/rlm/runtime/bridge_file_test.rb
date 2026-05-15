@@ -33,6 +33,20 @@ class RLM::Runtime::BridgeFileTest < Minitest::Test
     end
   end
 
+  def test_read_file_rejects_actual_content_over_file_byte_limit
+    file = RLM::File.new(
+      filename: "stale.txt",
+      content_type: "text/plain",
+      size_bytes: 1,
+      source: { kind: :text, text: "hello" }
+    )
+    bridge = build_bridge(context: RLM::Context.new(files: [file]), limits: RLM::Limits.new(max_file_bytes: 4))
+
+    assert_raises(RLM::BudgetExceededError) do
+      bridge.read_file("file_1")
+    end
+  end
+
   def test_submit_stores_terminal_output_and_records_trace
     trace = RLM::Trace.new
     bridge = build_bridge(trace: trace)
