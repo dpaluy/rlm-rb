@@ -26,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Context file mounting under subprocess workdir-relative `sandbox_path` values.
 - `RLM::Skill` and dependency-free `RLM::Skills::CSV` with subprocess `csv_rows` helper support.
 - Dependency-free `RLM::Skills::Directory` with subprocess `directory_files` and `grep_files` helper support.
+- Dependency-free `RLM::Skills::PDF` with subprocess `pdf_info` and `pdf_text_preview` helper support.
 
 ### Changed
 

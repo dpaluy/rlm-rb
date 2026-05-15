@@ -77,6 +77,8 @@ class Scope
   def csv_rows(handle, headers: true) = skill("csv", "rows", { "handle" => handle, "headers" => headers })
   def directory_files = skill("directory", "files", {})
   def grep_files(query) = skill("directory", "grep", { "query" => query })
+  def pdf_info(handle) = skill("pdf", "info", { "handle" => handle })
+  def pdf_text_preview(handle, bytes: 4096) = skill("pdf", "text_preview", { "handle" => handle, "bytes" => bytes })
   def submit(output_hash) = @protocol.call("submit", [output_hash])
   def read_file(handle) = @protocol.call("read_file", [handle])
   def list_files = @protocol.call("list_files", [])
