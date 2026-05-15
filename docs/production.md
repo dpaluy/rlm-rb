@@ -5,16 +5,21 @@ This guide covers intended host-app setup, error handling, production safety, an
 ## Rails Setup
 
 The optional Rails Railtie is available through `require "rlm/rails"`. It wires Rails cache and logger into
-`RLM.config` when Rails is loaded, without adding Rails as a core gem dependency. Rails generators, ActiveRecord trace
-tables, ActiveStorage-specific mounting, and background-job examples remain v2 items tracked in
-`docs/postponed-issues.md`.
+`RLM.config` when Rails is loaded, without adding Rails as a core gem dependency. ActiveRecord trace tables,
+ActiveStorage-specific mounting, and background-job examples remain v2 items tracked in `docs/postponed-issues.md`.
 
 ```ruby
 # config/application.rb or an initializer
 require "rlm/rails"
 ```
 
-The remaining v2 setup is:
+Rails apps can generate the initializer:
+
+```sh
+bin/rails generate rlm:install
+```
+
+The generator creates:
 
 ```ruby
 # config/initializers/rlm.rb

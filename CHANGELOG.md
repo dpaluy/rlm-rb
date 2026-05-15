@@ -44,6 +44,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `RLM::ResponseProtocol::NativeJSON` for RubyLLM provider-native structured JSON responses.
 - Optional `RLM::Rails::Railtie` loaded through `require "rlm/rails"` to wire Rails cache and logger without adding a
   Rails dependency to the core gem.
+- Optional `RLM::InstallGenerator` for Rails apps to create `config/initializers/rlm.rb`.
 
 ### Changed
 

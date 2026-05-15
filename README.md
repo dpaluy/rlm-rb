@@ -104,7 +104,8 @@ executes generated code in the host process and is only for dev/test.
 | Optional telemetry spans, ActiveSupport notifications, and dspy spans | Ready through `RLM::Telemetry` |
 | `RLM::Lm::RubyLLM` and `RLM::Signature::Dspy` | Ready |
 | Optional Rails Railtie | Ready through `require "rlm/rails"` when Rails is loaded |
-| Rails generator, migrations, ActiveStorage adapter | Future v2 milestone |
+| Rails install generator | Ready for initializer setup |
+| Rails migrations, ActiveStorage adapter | Future v2 milestone |
 
 ## Guides
 
