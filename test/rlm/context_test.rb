@@ -13,8 +13,15 @@ class RLM::ContextTest < Minitest::Test
     assert_equal %w[file_1 file_2], handles
 
     assert_equal "a.txt", manifest[:files].first[:filename]
-    assert_equal "/mnt/rlm/files/a.txt", manifest[:files].first[:sandbox_path]
+    assert_equal "rlm_files/file_1/a.txt", manifest[:files].first[:sandbox_path]
     assert_equal({ vendor_id: 7 }, manifest[:inputs])
+  end
+
+  def test_manifest_sandbox_paths_use_safe_relative_filenames
+    file = RLM::File.from_text("../invoice.txt", "alpha")
+    context = RLM::Context.new(files: [file])
+
+    assert_equal "rlm_files/file_1/invoice.txt", context.manifest[:files].first[:sandbox_path]
   end
 
   def test_file_for_round_trip

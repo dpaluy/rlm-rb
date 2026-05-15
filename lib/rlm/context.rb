@@ -2,7 +2,7 @@
 
 module RLM
   class Context
-    SANDBOX_FILES_ROOT = "/mnt/rlm/files"
+    SANDBOX_FILES_ROOT = "rlm_files"
 
     attr_reader :inputs, :files
 
@@ -21,7 +21,7 @@ module RLM
             filename: file.filename,
             content_type: file.content_type,
             size_bytes: file.size_bytes,
-            sandbox_path: ::File.join(SANDBOX_FILES_ROOT, file.filename)
+            sandbox_path: ::File.join(SANDBOX_FILES_ROOT, handle, safe_filename(file.filename))
           }
         end,
         inputs: serializable_inputs
@@ -46,6 +46,11 @@ module RLM
       @inputs.each_with_object({}) do |(key, value), acc|
         acc[key] = value.is_a?(File) ? { file_handle: handle_for(value) } : value
       end
+    end
+
+    def safe_filename(filename)
+      basename = ::File.basename(filename.to_s)
+      basename.empty? || basename == "." ? "file" : basename
     end
   end
 end

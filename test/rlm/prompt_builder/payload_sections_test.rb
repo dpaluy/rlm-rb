@@ -12,7 +12,7 @@ class RLM::PromptBuilder::PayloadSectionsTest < Minitest::Test
     assert_includes prompt, "## Context Manifest"
     assert_includes prompt, "file_1"
     assert_includes prompt, "invoice.txt"
-    assert_includes prompt, "/mnt/rlm/files/invoice.txt"
+    assert_includes prompt, "rlm_files/file_1/invoice.txt"
     assert_includes prompt, '"vendor_id": 7'
     assert_includes prompt, '"file_handle": "file_1"'
   end

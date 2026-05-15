@@ -111,7 +111,7 @@ module RLM
         - `tool(tool_name, input_hash)` - Call a read-only tool
         - `submit(output_hash)` - Submit final output
         - `read_file(handle)` - Read a file from context
-        - `list_files` - List available files
+        - `list_files` - List available files, including mounted `sandbox_path` values
         - `log(message)` - Log a message to the trace
       HELPERS
     end

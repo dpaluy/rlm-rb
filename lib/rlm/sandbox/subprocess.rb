@@ -7,6 +7,7 @@ require "tmpdir"
 require_relative "subprocess/runner"
 require_relative "subprocess/worker_source"
 require_relative "context_limits"
+require_relative "file_mounts"
 
 module RLM
   module Sandbox
@@ -41,8 +42,12 @@ module RLM
         @skills = skills
         @runtime_bridge = runtime_bridge
         @workdir = Dir.mktmpdir("rlm-subprocess-")
+        FileMounts.mount(context: context, workdir: workdir, limits: limits)
         @prepared = true
         ExecutionResult.new(status: :ok)
+      rescue StandardError
+        cleanup
+        raise
       end
 
       def exec(code)
