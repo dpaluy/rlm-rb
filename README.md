@@ -15,8 +15,8 @@ controls, trace events, a RubyLLM LM adapter, a dspy signature adapter, and a mi
 > `RLM::Signature::Dspy`, `RLM::Lm::Mock`, `RLM::Sandbox::Subprocess`, `RLM::Sandbox::UnsafeInProcess`,
 > budget enforcement and budget policies, trace events, recursive `predict`, prompt building, and a best-effort
 > `trace_store` callable hook, an in-memory trace store, JSONL eval export from traces/results, plus an in-memory eval
-> runner, identical recursive subcall caching, optional telemetry spans, and plain Ruby CSV/directory/PDF skills. Rails integration,
-> container/remote sandboxing, browser skills, real PDF parsing/OCR, and optimizer integration remain future milestones. `UnsafeInProcess` is dev/test-only
+> runner, identical recursive subcall caching, optional telemetry spans, and plain Ruby CSV/directory/PDF/HTML skills. Rails integration,
+> container/remote sandboxing, browser automation, real PDF parsing/OCR, and optimizer integration remain future milestones. `UnsafeInProcess` is dev/test-only
 > and executes generated code in the host Ruby process.
 
 ## Why
@@ -216,7 +216,7 @@ Rails integration is not yet implemented. Rails remains a v2 milestone tracked i
 | `RLM::Sandbox::UnsafeInProcess` | Ready for dev/test only; executes in host process and mutates global streams during serialized capture |
 | `RLM::Tool` base class with category and schema DSL | Ready |
 | `RLM::ToolRegistry` | Ready for read-only application tool registration |
-| `RLM::Skill` / `RLM::Skills::CSV` / `RLM::Skills::Directory` / `RLM::Skills::PDF` | Ready for dependency-free context skills |
+| `RLM::Skill` / `RLM::Skills::CSV` / `RLM::Skills::Directory` / `RLM::Skills::PDF` / `RLM::Skills::HTML` | Ready for dependency-free context skills |
 | Error hierarchy | Ready |
 | `RLM::Predict#call` | Delegates to `RLM::Runtime` |
 | `RLM::Runtime` mock loop | Ready (with `RLM::Lm::Mock`) |
@@ -331,6 +331,17 @@ result = RLM.predict(
   InvoiceExtraction,
   input: { invoice: RLM::File.from_text("invoice.pdf", "%PDF-1.4\n/Type /Page\n%%EOF") },
   skills: [RLM::Skills::PDF.new]
+)
+```
+
+`RLM::Skills::HTML` exposes `html_text(handle)` and `html_links(handle)` for static HTML context files. It does not run
+a browser, JavaScript, or network requests.
+
+```ruby
+result = RLM.predict(
+  InvoiceExtraction,
+  input: { page: RLM::File.from_text("page.html", '<a href="/next">Next</a>') },
+  skills: [RLM::Skills::HTML.new]
 )
 ```
 
