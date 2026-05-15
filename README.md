@@ -14,9 +14,9 @@ controls, trace events, a RubyLLM LM adapter, a dspy signature adapter, and a mi
 > **Status: Plain Ruby adapter milestone.** The released gem is v0.2.0. It includes `RLM::Lm::RubyLLM`,
 > `RLM::Signature::Dspy`, `RLM::Lm::Mock`, `RLM::Sandbox::Subprocess`, `RLM::Sandbox::UnsafeInProcess`,
 > budget enforcement and budget policies, trace events, recursive `predict`, prompt building, and a best-effort
-> `trace_store` callable hook, JSONL eval export from traces/results, plus an in-memory eval runner. Rails integration,
-> container/remote sandboxing, tools, skills, cache, telemetry, and optimizer integration remain future milestones.
-> `UnsafeInProcess` is dev/test-only and executes generated code in the host Ruby process.
+> `trace_store` callable hook, an in-memory trace store, JSONL eval export from traces/results, plus an in-memory eval
+> runner. Rails integration, container/remote sandboxing, tools, skills, cache, telemetry, and optimizer integration
+> remain future milestones. `UnsafeInProcess` is dev/test-only and executes generated code in the host Ruby process.
 
 ## Why
 
@@ -224,6 +224,7 @@ Rails integration is not yet implemented. Rails remains a v2 milestone tracked i
 | `RLM::Runtime::Bridge` | Ready for runtime-owned subcalls, tools, submission, file reads, and logging |
 | Budget enforcement and policies (`max_llm_calls`, `max_sub_lm_calls`, `max_tool_calls`, `max_iterations`, `max_cost_cents`, `max_runtime_seconds`, `on_budget_exceeded`) | Ready |
 | `trace_store` callable hook | Ready (best-effort; receives terminal `RLM::Result`) |
+| `RLM::TraceStore` / `RLM::TraceStore::Memory` | Ready for plain Ruby in-memory result storage |
 | Recursive `predict` + depth limit | Ready |
 | `RLM::Lm::RubyLLM` provider adapter | Ready |
 | `RLM::Signature::Dspy` signature adapter | Ready |
@@ -231,6 +232,24 @@ Rails integration is not yet implemented. Rails remains a v2 milestone tracked i
 | Rails Railtie, generator, migrations, ActiveStorage adapter | Future milestone |
 
 The table above reflects the current unreleased plain Ruby adapter implementation status.
+
+## Trace stores
+
+Any `trace_store` object only needs to respond to `#call(result)`. `RLM::TraceStore` formalizes that contract and
+`RLM::TraceStore::Memory` provides a small plain Ruby store for tests, scripts, and local eval collection.
+
+```ruby
+store = RLM::TraceStore::Memory.new
+
+result = RLM.predict(
+  InvoiceExtraction,
+  input: { invoice_text: "Invoice total: $42" },
+  trace_store: store
+)
+
+store.fetch(result.trace.id) # => result
+store.all                   # => [result]
+```
 
 ## Eval export
 
