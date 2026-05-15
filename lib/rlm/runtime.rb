@@ -120,6 +120,10 @@ module RLM
       @last_submitted_output = output
     end
 
+    def cached_bridge_call(type:, payload:, &)
+      cached_runtime_call(type: type, payload: payload, &)
+    end
+
     private
 
     attr_reader :signature, :input, :lm, :sub_lm, :context, :tools, :skills,

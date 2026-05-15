@@ -9,14 +9,28 @@ module RLM
 
       private
 
-      def cached_subcall(checked_signature, payload)
-        key = subcall_cache_key(checked_signature, payload)
-        cached = read_subcall_cache(key)
+      def cached_runtime_call(type:, payload:)
+        key = runtime_cache_key(type: type, payload: payload)
+        cached = read_runtime_cache(key)
         return cached unless cached.equal?(MISS)
 
         output = yield
-        write_subcall_cache(key, output)
+        write_runtime_cache(key, output)
         output
+      end
+
+      def cached_subcall(checked_signature, payload)
+        key = subcall_cache_key(checked_signature, payload)
+        cached = read_runtime_cache(key)
+        return cached unless cached.equal?(MISS)
+
+        output = yield
+        write_runtime_cache(key, output)
+        output
+      end
+
+      def runtime_cache_key(type:, payload:)
+        JSON.generate(type: "rlm.#{type}.v1", input: normalize_cache_value(payload))
       end
 
       def subcall_cache_key(checked_signature, payload)
@@ -27,13 +41,13 @@ module RLM
         )
       end
 
-      def read_subcall_cache(key)
+      def read_runtime_cache(key)
         return MISS if cache.nil?
 
         read_hash_cache(key) || read_fetch_cache(key) || read_object_cache(key)
       end
 
-      def write_subcall_cache(key, output)
+      def write_runtime_cache(key, output)
         return if cache.nil?
 
         if cache.is_a?(Hash)

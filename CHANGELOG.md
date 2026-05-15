@@ -28,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Dependency-free `RLM::Skills::Directory` with subprocess `directory_files` and `grep_files` helper support.
 - Dependency-free `RLM::Skills::PDF` with subprocess `pdf_info` and `pdf_text_preview` helper support.
 - Dependency-free `RLM::Skills::HTML` with subprocess `html_text` and `html_links` helper support.
+- Runtime cache reuse for identical context file reads, read-only tool calls, and skill calls.
 
 ### Changed
 

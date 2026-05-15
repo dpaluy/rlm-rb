@@ -62,8 +62,7 @@ module RLM
 
         authorize_tool!(tool, input)
         validate_tool_input!(tool, input)
-        instance = tool_instance(tool)
-        output = instance.call(**symbolize_keys(input))
+        output = execute_tool(tool, input)
         ensure_json_value!(output, "tool output")
         validate_tool_output!(tool, output)
         trace.record(:tool_called, tool: tool_class(tool).registry_name, input: input)
@@ -88,6 +87,12 @@ module RLM
       private
 
       attr_reader :runtime, :context, :trace, :tools, :skills, :signatures, :tool_authorizer, :limits, :depth
+
+      def execute_tool(tool, input)
+        cached_call(type: "tool", payload: { tool: tool_class(tool).registry_name, input: input }) do
+          tool_instance(tool).call(**symbolize_keys(input))
+        end
+      end
 
       def find_signature(signature_name)
         signatures[signature_name] || signatures[signature_name.to_s] || signatures[signature_name.to_sym]

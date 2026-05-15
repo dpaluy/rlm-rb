@@ -9,7 +9,9 @@ module RLM
           instance = find_skill(skill_name)
           raise ValidationError, "Unknown skill: #{skill_name}" if instance.nil?
 
-          output = instance.call(method_name, input, context: context, limits: limits)
+          output = cached_call(type: "skill", payload: skill_payload(instance, method_name, input)) do
+            instance.call(method_name, input, context: context, limits: limits)
+          end
           ensure_json_value!(output, "skill output")
           trace.record(:skill_called, skill: skill_key(instance), method: method_name, input: input)
           output
@@ -25,6 +27,10 @@ module RLM
           return instance.registry_name if instance.respond_to?(:registry_name)
 
           instance.class.name.split("::").last.downcase
+        end
+
+        def skill_payload(instance, method_name, input)
+          { skill: skill_key(instance), method: method_name, input: input }
         end
       end
     end

@@ -229,7 +229,7 @@ Rails integration is not yet implemented. Rails remains a v2 milestone tracked i
 | Budget enforcement and policies (`max_llm_calls`, `max_sub_lm_calls`, `max_tool_calls`, `max_iterations`, `max_cost_cents`, `max_runtime_seconds`, `on_budget_exceeded`) | Ready |
 | `trace_store` callable hook | Ready (best-effort; receives terminal `RLM::Result`) |
 | `RLM::TraceStore` / `RLM::TraceStore::Memory` | Ready for plain Ruby in-memory result storage |
-| Identical recursive subcall caching | Ready through `cache:` / `RLM.config.cache` |
+| Runtime caching | Ready for identical recursive subcalls, file reads, tool calls, and skill calls through `cache:` / `RLM.config.cache` |
 | Optional telemetry spans | Ready through `RLM::Telemetry`; OpenTelemetry-compatible when available |
 | Recursive `predict` + depth limit | Ready |
 | `RLM::Lm::RubyLLM` provider adapter | Ready |
@@ -412,7 +412,8 @@ result = RLM.predict(
 )
 ```
 
-Plain Ruby hashes are supported. Cache objects that respond to `fetch` and `write` are also supported.
+Plain Ruby hashes are supported. Cache objects that respond to `fetch` and `write` are also supported. The cache covers
+identical recursive subcalls, context file reads, read-only tool calls, and skill calls.
 
 ## Telemetry
 

@@ -8,7 +8,7 @@ module RLM
       module Files
         def read_file(handle)
           file = context_file(handle)
-          content = file.read
+          content = cached_call(type: "file_read", payload: { handle: handle }) { file.read }
           Sandbox::ContextLimits.new(context: context, limits: limits).validate_file_content!(file, content)
           trace.record(:file_read, handle: handle, filename: file.filename, size_bytes: file.size_bytes)
           content
@@ -27,6 +27,12 @@ module RLM
           raise ValidationError, "Unknown file handle: #{handle}" if file.nil?
 
           file
+        end
+
+        def cached_call(type:, payload:, &block)
+          return block.call unless runtime.respond_to?(:cached_bridge_call)
+
+          runtime.cached_bridge_call(type: type, payload: payload, &block)
         end
       end
     end

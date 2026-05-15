@@ -91,6 +91,10 @@ module RLM
           runtime_bridge.tool(tool_name, input_hash)
         end
 
+        def skill(skill_name, method_name, input_hash)
+          runtime_bridge.skill(skill_name, method_name, input_hash)
+        end
+
         def submit(output_hash)
           runtime_bridge.submit(output_hash)
         end
