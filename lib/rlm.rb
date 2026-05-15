@@ -2,6 +2,7 @@
 
 require_relative "rlm/version"
 require_relative "rlm/errors"
+require_relative "rlm/response_protocol"
 require_relative "rlm/code_extractor"
 require_relative "rlm/signature"
 require_relative "rlm/prompt_builder"

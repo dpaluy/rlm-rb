@@ -12,11 +12,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `RLM::Sandbox::Subprocess` local process sandbox with timeout enforcement, stdout/stderr capture and caps, exit
   status capture, tempdir cleanup, and JSON-line proxying for runtime helpers.
 - Runtime integration coverage proving `RLM.predict(...)` can execute generated code through the subprocess sandbox.
+- `RLM::ResponseProtocol` as the named home for the default `<rlm-code>` / `<rlm-final>` rendering contract.
 
 ### Changed
 
 - The shipped live plain Ruby example now uses `RLM::Sandbox::Subprocess` instead of the dev/test-only
   `UnsafeInProcess` backend.
+- README now documents RLM.rb's five architecture layers: interface, inference, rendering, call graph, and evals.
 
 ## [0.2.0] - 2026-05-15
 

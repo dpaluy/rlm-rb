@@ -27,6 +27,16 @@ controls, trace events, a RubyLLM LM adapter, a dspy signature adapter, and a mi
 RLM.rb replaces those with a bounded Ruby runtime where the model explores context programmatically, calls smaller
 typed LLM functions only when needed, and returns validated Ruby objects with a full execution trace.
 
+## Architecture Layers
+
+RLM.rb separates production AI jobs into five layers:
+
+- **Interface**: typed task contracts through `RLM::Signature` and `RLM::Signature::Dspy`.
+- **Inference**: provider and model calls through `RLM::Lm::*`, including `RLM::Lm::RubyLLM`.
+- **Rendering**: the RLM response protocol that renders tasks into prompts and parses `<rlm-code>` / `<rlm-final>`.
+- **Call graph**: recursive runtime execution through `RLM::Runtime`, sandbox helpers, tools, and sub-signatures.
+- **Evals**: future trace-driven evaluation and optimization over completed runs.
+
 ## Install
 
 RLM.rb requires Ruby 3.3 or newer. Ruby 3.2 and older are not supported because dspy.rb is mandatory for the plain
@@ -207,6 +217,7 @@ Rails integration is not yet implemented. Rails remains a v2 milestone tracked i
 | `RLM::Runtime` mock loop | Ready (with `RLM::Lm::Mock`) |
 | `RLM::PromptBuilder` | Ready (v0.2 contract) |
 | `RLM::CodeExtractor` | Ready |
+| `RLM::ResponseProtocol` | Ready for the default RLM tag rendering protocol |
 | `RLM::Runtime::Bridge` | Ready for runtime-owned subcalls, tools, submission, file reads, and logging |
 | Budget enforcement and policies (`max_llm_calls`, `max_sub_lm_calls`, `max_tool_calls`, `max_iterations`, `max_cost_cents`, `max_runtime_seconds`, `on_budget_exceeded`) | Ready |
 | `trace_store` callable hook | Ready (best-effort; receives terminal `RLM::Result`) |

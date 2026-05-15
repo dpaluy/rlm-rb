@@ -2,20 +2,17 @@
 
 require "json"
 
+require_relative "response_protocol"
+
 module RLM
   class CodeExtractor
-    CODE_OPEN = "<rlm-code>"
-    CODE_CLOSE = "</rlm-code>"
-    FINAL_OPEN = "<rlm-final>"
-    FINAL_CLOSE = "</rlm-final>"
-    KNOWN_TAG_PATTERN = %r{</?rlm-(?:code|final)>}
-    TYPES = %i[code final].freeze
-
     class Result
       attr_reader :type, :content
 
       def initialize(type:, content:)
-        raise ArgumentError, "Unknown code extraction result type: #{type.inspect}" unless TYPES.include?(type)
+        unless ResponseProtocol::TYPES.include?(type)
+          raise ArgumentError, "Unknown code extraction result type: #{type.inspect}"
+        end
 
         @type = type
         @content = content
@@ -77,15 +74,15 @@ module RLM
     end
 
     def scan_tags(response)
-      response.to_enum(:scan, KNOWN_TAG_PATTERN).map do
+      response.to_enum(:scan, ResponseProtocol::KNOWN_TAG_PATTERN).map do
         match = Regexp.last_match
         { text: match[0], begin: match.begin(0), end: match.end(0) }
       end
     end
 
     def block_type_for(tags)
-      has_code = tags.any? { |tag| [CODE_OPEN, CODE_CLOSE].include?(tag[:text]) }
-      has_final = tags.any? { |tag| [FINAL_OPEN, FINAL_CLOSE].include?(tag[:text]) }
+      has_code = tags.any? { |tag| code_tags.include?(tag[:text]) }
+      has_final = tags.any? { |tag| final_tags.include?(tag[:text]) }
 
       raise ParseError, "response must not mix rlm-code and rlm-final blocks" if has_code && has_final
 
@@ -93,11 +90,7 @@ module RLM
     end
 
     def tags_for(type)
-      case type
-      when :code then [CODE_OPEN, CODE_CLOSE]
-      when :final then [FINAL_OPEN, FINAL_CLOSE]
-      else raise ParseError, "unknown block type: #{type.inspect}"
-      end
+      ResponseProtocol.tags_for(type)
     end
 
     def reject_non_whitespace_outside_block!(response, opening, closing)
@@ -109,7 +102,7 @@ module RLM
     end
 
     def reject_nested_tags!(content)
-      return unless content.match?(KNOWN_TAG_PATTERN)
+      return unless content.match?(ResponseProtocol::KNOWN_TAG_PATTERN)
 
       raise ParseError, "rlm blocks must not contain nested rlm tags"
     end
@@ -121,5 +114,9 @@ module RLM
     rescue JSON::ParserError => e
       raise ParseError, "invalid JSON in rlm-final block: #{e.message}"
     end
+
+    def code_tags = ResponseProtocol.tags_for(:code)
+
+    def final_tags = ResponseProtocol.tags_for(:final)
   end
 end

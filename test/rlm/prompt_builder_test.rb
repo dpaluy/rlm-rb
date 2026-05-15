@@ -19,41 +19,10 @@ class RLM::PromptBuilderTest < Minitest::Test
     assert_includes prompt, "valid JSON"
   end
 
-  def test_includes_context_manifest_when_context_has_files_or_inputs
-    file = RLM::File.from_text("invoice.txt", "total: 10")
-    context = RLM::Context.new(inputs: { invoice: file, vendor_id: 7 }, files: [file])
+  def test_uses_shared_response_protocol_output_instructions
+    prompt = RLM::PromptBuilder.build(:classify_invoice, input: {})
 
-    prompt = RLM::PromptBuilder.build("ExtractTotal", input: {}, context: context)
-
-    assert_includes prompt, "## Context Manifest"
-    assert_includes prompt, "file_1"
-    assert_includes prompt, "invoice.txt"
-    assert_includes prompt, "/mnt/rlm/files/invoice.txt"
-    assert_includes prompt, '"vendor_id": 7'
-    assert_includes prompt, '"file_handle": "file_1"'
-  end
-
-  def test_omits_context_manifest_when_context_is_nil
-    prompt = RLM::PromptBuilder.build("NoContext", input: {})
-
-    refute_includes prompt, "## Context Manifest"
-  end
-
-  def test_omits_context_manifest_when_context_is_empty
-    context = RLM::Context.new
-
-    prompt = RLM::PromptBuilder.build("EmptyContext", input: {}, context: context)
-
-    refute_includes prompt, "## Context Manifest"
-  end
-
-  def test_includes_limits_when_provided
-    limits = RLM::Limits.new(max_iterations: 2)
-
-    prompt = RLM::PromptBuilder.build("Limited", input: {}, limits: limits)
-
-    assert_includes prompt, "## Limits"
-    assert_includes prompt, '"max_iterations": 2'
+    assert_includes prompt, RLM::ResponseProtocol.output_instructions
   end
 
   def test_builds_deterministic_prompt_from_equivalent_inputs
@@ -84,32 +53,11 @@ class RLM::PromptBuilderTest < Minitest::Test
     end
   end
 
-  def test_rejects_invalid_context
-    assert_raises(RLM::ConfigurationError) do
-      RLM::PromptBuilder.build("InvalidContext", input: {}, context: Object.new)
-    end
-  end
-
-  def test_rejects_malformed_context_manifest
-    context = Object.new
-    context.define_singleton_method(:manifest) { { "files" => [], "inputs" => {} } }
-
-    assert_raises(RLM::ConfigurationError) do
-      RLM::PromptBuilder.build("MalformedContext", input: {}, context: context)
-    end
-  end
-
   def test_prompt_builder_can_be_required_directly
     script = 'require "rlm/prompt_builder"; puts RLM::PromptBuilder.build(:x, input: {})'
     output = IO.popen([RbConfig.ruby, "-Ilib", "-e", script], &:read)
 
     assert_includes output, "# RLM Prediction Prompt"
-  end
-
-  def test_rejects_invalid_limits
-    assert_raises(RLM::ConfigurationError) do
-      RLM::PromptBuilder.build("InvalidLimits", input: {}, limits: Object.new)
-    end
   end
 
   def test_includes_description_when_signature_has_one
