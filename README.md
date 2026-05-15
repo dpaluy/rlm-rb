@@ -103,7 +103,8 @@ executes generated code in the host process and is only for dev/test.
 | Runtime caching | Ready for subcalls, file reads, tools, and skills |
 | Optional telemetry spans, ActiveSupport notifications, and dspy spans | Ready through `RLM::Telemetry` |
 | `RLM::Lm::RubyLLM` and `RLM::Signature::Dspy` | Ready |
-| Rails Railtie, generator, migrations, ActiveStorage adapter | Future v2 milestone |
+| Optional Rails Railtie | Ready through `require "rlm/rails"` when Rails is loaded |
+| Rails generator, migrations, ActiveStorage adapter | Future v2 milestone |
 
 ## Guides
 

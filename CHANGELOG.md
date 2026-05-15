@@ -42,6 +42,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `RLM::Sandbox::Remote` for caller-supplied remote sandbox transports.
 - `RLM::ResponseProtocol.optimize` for eval-driven response protocol selection.
 - `RLM::ResponseProtocol::NativeJSON` for RubyLLM provider-native structured JSON responses.
+- Optional `RLM::Rails::Railtie` loaded through `require "rlm/rails"` to wire Rails cache and logger without adding a
+  Rails dependency to the core gem.
 
 ### Changed
 

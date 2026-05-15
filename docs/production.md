@@ -4,9 +4,17 @@ This guide covers intended host-app setup, error handling, production safety, an
 
 ## Rails Setup
 
-Rails integration is not yet implemented. Rails remains a v2 milestone tracked in `docs/postponed-issues.md`.
+The optional Rails Railtie is available through `require "rlm/rails"`. It wires Rails cache and logger into
+`RLM.config` when Rails is loaded, without adding Rails as a core gem dependency. Rails generators, ActiveRecord trace
+tables, ActiveStorage-specific mounting, and background-job examples remain v2 items tracked in
+`docs/postponed-issues.md`.
 
-The intended v2 setup is:
+```ruby
+# config/application.rb or an initializer
+require "rlm/rails"
+```
+
+The remaining v2 setup is:
 
 ```ruby
 # config/initializers/rlm.rb
