@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `RLM::TraceStore` and `RLM::TraceStore::Memory` for plain Ruby terminal result storage.
 - `RLM::ToolRegistry` for registering read-only application tools.
 - `RLM::Tool.input_schema` and `RLM::Tool.output_schema` for shallow JSON-shaped tool contract validation.
+- `tool_authorizer` hook on config and prediction calls to approve or deny read-only tool execution.
 
 ### Changed
 

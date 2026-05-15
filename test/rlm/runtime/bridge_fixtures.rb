@@ -49,13 +49,22 @@ module RuntimeBridgeFixtures
     def self.validate_output(output) = output.key?(:summary) || output.key?("summary") ? [] : ["summary is required"]
   end
 
-  def build_bridge(runtime: nil, context: RLM::Context.new, trace: RLM::Trace.new, tools: [], signatures: {}, depth: 0)
+  def build_bridge(
+    runtime: nil,
+    context: RLM::Context.new,
+    trace: RLM::Trace.new,
+    tools: [],
+    signatures: {},
+    tool_authorizer: nil,
+    depth: 0
+  )
     RLM::Runtime::Bridge.new(
       runtime: runtime,
       context: context,
       trace: trace,
       tools: tools,
       signatures: signatures,
+      tool_authorizer: tool_authorizer,
       depth: depth
     )
   end

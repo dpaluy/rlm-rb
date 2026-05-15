@@ -39,7 +39,8 @@ module RLM
       validators: [],
       signatures: [],
       depth: 0,
-      trace_store: nil
+      trace_store: nil,
+      tool_authorizer: nil
     )
       @signature = signature
       @input = input || {}
@@ -54,6 +55,7 @@ module RLM
       @signatures = SignatureRegistry.build(signature, signatures)
       @depth = depth
       @trace_store = trace_store
+      @tool_authorizer = tool_authorizer
       @trace = Trace.new
       @iterations = 0
       @llm_calls = 0
@@ -111,6 +113,6 @@ module RLM
 
     attr_reader :signature, :input, :lm, :sub_lm, :context, :tools, :skills,
                 :sandbox, :limits, :validators, :signatures, :depth, :trace,
-                :iterations, :llm_calls, :sub_lm_calls, :trace_store
+                :iterations, :llm_calls, :sub_lm_calls, :trace_store, :tool_authorizer
   end
 end

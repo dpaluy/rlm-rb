@@ -24,6 +24,13 @@ module RLM
           tool.is_a?(Class) ? tool.new : tool
         end
 
+        def authorize_tool!(tool, input)
+          return unless tool_authorizer.respond_to?(:call)
+
+          allowed = tool_authorizer.call(tool: tool_class(tool), input: input, context: context)
+          raise ToolError, "Tool is not authorized: #{tool_class(tool).registry_name}" unless allowed
+        end
+
         def validate_tool_input!(tool, input)
           errors = tool_class(tool).validate_input(input)
           raise ToolError, errors.join(", ") unless errors.empty?

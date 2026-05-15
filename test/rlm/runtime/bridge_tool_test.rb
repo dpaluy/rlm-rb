@@ -71,6 +71,33 @@ class RLM::Runtime::BridgeToolTest < Minitest::Test
     assert_includes error.message, "output.name must be string"
   end
 
+  def test_tool_authorizer_can_deny_read_only_tool_execution
+    authorizer = ->(tool:, input:, context:) { tool != LookupVendor || input[:vendor_id] == 1 || context.nil? }
+    bridge = build_bridge(tools: [LookupVendor], tool_authorizer: authorizer)
+
+    error = assert_raises(RLM::ToolError) do
+      bridge.tool("LookupVendor", { vendor_id: 7 })
+    end
+
+    assert_includes error.message, "not authorized"
+  end
+
+  def test_tool_authorizer_receives_tool_input_and_context
+    calls = []
+    context = RLM::Context.new(inputs: { account_id: 1 })
+    authorizer = lambda do |**payload|
+      calls << payload
+      true
+    end
+    bridge = build_bridge(context: context, tools: [LookupVendor], tool_authorizer: authorizer)
+
+    bridge.tool("LookupVendor", { vendor_id: 7 })
+
+    assert_equal LookupVendor, calls.first[:tool]
+    assert_equal({ vendor_id: 7 }, calls.first[:input])
+    assert_same context, calls.first[:context]
+  end
+
   def test_tool_delegates_attempt_accounting_before_lookup
     runtime = AccountingRuntime.new(0, false)
     bridge = build_bridge(runtime: runtime)

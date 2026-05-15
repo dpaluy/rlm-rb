@@ -43,6 +43,24 @@ class RLM::PredictTest < Minitest::Test
     assert_equal [:fake_tool], predictor.tools
   end
 
+  def test_tool_authorizer_can_come_from_config
+    authorizer = ->(**) { true }
+    RLM.config.tool_authorizer = authorizer
+
+    predictor = RLM::Predict.new(:my_signature)
+
+    assert_same authorizer, predictor.tool_authorizer
+  end
+
+  def test_explicit_tool_authorizer_overrides_config
+    explicit = ->(**) { true }
+    RLM.config.tool_authorizer = ->(**) { false }
+
+    predictor = RLM::Predict.new(:my_signature, tool_authorizer: explicit)
+
+    assert_same explicit, predictor.tool_authorizer
+  end
+
   def test_call_runs_runtime
     lm = RLM::Lm::Mock.new(responses: ['<rlm-final>{"ok":true}</rlm-final>'])
     predictor = RLM::Predict.new(FakeSignature, lm: lm)

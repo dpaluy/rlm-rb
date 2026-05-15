@@ -13,12 +13,13 @@ module RLM
 
       attr_reader :submitted_output
 
-      def initialize(context:, trace:, runtime: nil, tools: [], signatures: {}, depth: 0)
+      def initialize(context:, trace:, runtime: nil, tools: [], signatures: {}, tool_authorizer: nil, depth: 0)
         @runtime = runtime
         @context = context
         @trace = trace
         @tools = tools.is_a?(ToolRegistry) ? tools : Array(tools)
         @signatures = signatures
+        @tool_authorizer = tool_authorizer
         @depth = depth
         @submitted_output = nil
       end
@@ -43,6 +44,7 @@ module RLM
         raise ToolError, "Unknown tool: #{tool_name}" if tool.nil?
         raise ToolError, "Tool is not read-only: #{tool_name}" unless tool_class(tool).category == :read_only
 
+        authorize_tool!(tool, input)
         validate_tool_input!(tool, input)
         instance = tool_instance(tool)
         output = instance.call(**symbolize_keys(input))
@@ -84,7 +86,7 @@ module RLM
 
       private
 
-      attr_reader :runtime, :context, :trace, :tools, :signatures, :depth
+      attr_reader :runtime, :context, :trace, :tools, :signatures, :tool_authorizer, :depth
 
       def find_signature(signature_name)
         signatures[signature_name] || signatures[signature_name.to_s] || signatures[signature_name.to_sym]

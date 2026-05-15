@@ -17,6 +17,7 @@ module RLM
           trace: trace,
           tools: tools,
           signatures: signatures,
+          tool_authorizer: tool_authorizer,
           depth: depth
         )
         sandbox.prepare(context: context, tools: tools, skills: skills, runtime_bridge: bridge)

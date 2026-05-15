@@ -269,16 +269,19 @@ class VendorLookup < RLM::Tool
 end
 
 tools = RLM::ToolRegistry.new([VendorLookup])
+authorizer = ->(tool:, input:, context:) { tool == VendorLookup && context.inputs[:vendor_id] == input[:vendor_id] }
 
 result = RLM.predict(
   InvoiceExtraction,
   input: { vendor_id: 123, invoice_text: "Invoice total: $42" },
-  tools: tools
+  tools: tools,
+  tool_authorizer: authorizer
 )
 ```
 
-`RLM::ToolRegistry` only accepts tools whose category is `:read_only`. Write-capable tools and authorization hooks
-remain future milestones.
+`RLM::ToolRegistry` only accepts tools whose category is `:read_only`. A `tool_authorizer` callable can deny a
+read-only call before execution; return `true` to allow and `false`/`nil` to reject. Write-capable tools remain a future
+milestone.
 
 ## Eval export
 
