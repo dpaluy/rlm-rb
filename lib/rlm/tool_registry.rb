@@ -40,7 +40,9 @@ module RLM
         {
           name: klass.registry_name,
           description: klass.description,
-          category: klass.category
+          category: klass.category,
+          input_schema: klass.input_schema,
+          output_schema: klass.output_schema
         }
       end
     end

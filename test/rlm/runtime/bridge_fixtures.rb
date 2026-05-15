@@ -2,6 +2,9 @@
 
 module RuntimeBridgeFixtures
   class LookupVendor < RLM::Tool
+    input_schema vendor_id: :integer
+    output_schema id: :integer, name: :string
+
     def call(vendor_id:)
       { id: vendor_id, name: "Acme" }
     end

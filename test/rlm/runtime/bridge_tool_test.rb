@@ -44,6 +44,33 @@ class RLM::Runtime::BridgeToolTest < Minitest::Test
     end
   end
 
+  def test_tool_validates_input_schema_before_execution
+    bridge = build_bridge(tools: [LookupVendor])
+
+    error = assert_raises(RLM::ToolError) do
+      bridge.tool("LookupVendor", { vendor_id: "bad" })
+    end
+
+    assert_includes error.message, "input.vendor_id must be integer"
+  end
+
+  def test_tool_validates_output_schema_after_execution
+    bad_tool = Class.new(RLM::Tool) do
+      def self.registry_name = "BadLookup"
+
+      output_schema name: :string
+
+      def call
+        { name: 1 }
+      end
+    end
+    bridge = build_bridge(tools: [bad_tool])
+
+    error = assert_raises(RLM::ToolError) { bridge.tool("BadLookup", {}) }
+
+    assert_includes error.message, "output.name must be string"
+  end
+
   def test_tool_delegates_attempt_accounting_before_lookup
     runtime = AccountingRuntime.new(0, false)
     bridge = build_bridge(runtime: runtime)

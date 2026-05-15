@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `RLM::Eval.run` for in-memory golden dataset evaluation with caller-supplied metrics.
 - `RLM::TraceStore` and `RLM::TraceStore::Memory` for plain Ruby terminal result storage.
 - `RLM::ToolRegistry` for registering read-only application tools.
+- `RLM::Tool.input_schema` and `RLM::Tool.output_schema` for shallow JSON-shaped tool contract validation.
 
 ### Changed
 

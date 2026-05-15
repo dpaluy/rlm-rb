@@ -212,7 +212,7 @@ Rails integration is not yet implemented. Rails remains a v2 milestone tracked i
 | `RLM::Sandbox::Base` interface + `Mock` backend | Ready |
 | `RLM::Sandbox::Subprocess` | Ready for local process isolation; supports timeout, stdout/stderr capture and caps, exit status capture, tempdir cleanup, and bridge-proxied helper calls |
 | `RLM::Sandbox::UnsafeInProcess` | Ready for dev/test only; executes in host process and mutates global streams during serialized capture |
-| `RLM::Tool` base class with category DSL | Ready |
+| `RLM::Tool` base class with category and schema DSL | Ready |
 | `RLM::ToolRegistry` | Ready for read-only application tool registration |
 | Error hierarchy | Ready |
 | `RLM::Predict#call` | Delegates to `RLM::Runtime` |
@@ -260,6 +260,8 @@ Register tool classes or instances directly, or group them in `RLM::ToolRegistry
 ```ruby
 class VendorLookup < RLM::Tool
   description "Look up vendor metadata."
+  input_schema vendor_id: :integer
+  output_schema vendor_id: :integer, name: :string
 
   def call(vendor_id:)
     { vendor_id: vendor_id, name: "ACME" }
