@@ -15,8 +15,8 @@ controls, trace events, a RubyLLM LM adapter, a dspy signature adapter, and a mi
 > `RLM::Signature::Dspy`, `RLM::Lm::Mock`, `RLM::Sandbox::Subprocess`, `RLM::Sandbox::UnsafeInProcess`,
 > budget enforcement and budget policies, trace events, recursive `predict`, prompt building, and a best-effort
 > `trace_store` callable hook, an in-memory trace store, JSONL eval export from traces/results, plus an in-memory eval
-> runner, identical recursive subcall caching, optional telemetry spans, and the plain Ruby CSV skill. Rails integration,
-> container/remote sandboxing, most skills, and optimizer integration remain future milestones. `UnsafeInProcess` is dev/test-only
+> runner, identical recursive subcall caching, optional telemetry spans, and plain Ruby CSV/directory skills. Rails integration,
+> container/remote sandboxing, PDF/browser skills, and optimizer integration remain future milestones. `UnsafeInProcess` is dev/test-only
 > and executes generated code in the host Ruby process.
 
 ## Why
@@ -216,7 +216,7 @@ Rails integration is not yet implemented. Rails remains a v2 milestone tracked i
 | `RLM::Sandbox::UnsafeInProcess` | Ready for dev/test only; executes in host process and mutates global streams during serialized capture |
 | `RLM::Tool` base class with category and schema DSL | Ready |
 | `RLM::ToolRegistry` | Ready for read-only application tool registration |
-| `RLM::Skill` / `RLM::Skills::CSV` | Ready for dependency-free CSV context reads through `csv_rows` |
+| `RLM::Skill` / `RLM::Skills::CSV` / `RLM::Skills::Directory` | Ready for dependency-free CSV reads and context file listing/search |
 | Error hierarchy | Ready |
 | `RLM::Predict#call` | Delegates to `RLM::Runtime` |
 | `RLM::Runtime` mock loop | Ready (with `RLM::Lm::Mock`) |
@@ -310,6 +310,16 @@ result = RLM.predict(
   InvoiceExtraction,
   input: { invoice_csv: invoice_csv },
   skills: [RLM::Skills::CSV.new]
+)
+```
+
+`RLM::Skills::Directory` exposes `directory_files` and `grep_files(query)` for context-bounded file inspection.
+
+```ruby
+result = RLM.predict(
+  InvoiceExtraction,
+  input: { notes: RLM::File.from_text("notes.txt", "needle here\n") },
+  skills: [RLM::Skills::Directory.new]
 )
 ```
 

@@ -25,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Subprocess sandbox enforcement for `max_input_bytes`, `max_files`, and `max_file_bytes`.
 - Context file mounting under subprocess workdir-relative `sandbox_path` values.
 - `RLM::Skill` and dependency-free `RLM::Skills::CSV` with subprocess `csv_rows` helper support.
+- Dependency-free `RLM::Skills::Directory` with subprocess `directory_files` and `grep_files` helper support.
 
 ### Changed
 
