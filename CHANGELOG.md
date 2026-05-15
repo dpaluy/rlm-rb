@@ -41,6 +41,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - README now documents RLM.rb's five architecture layers: interface, inference, rendering, call graph, and evals.
 - `RLM::ResponseProtocol::Tags` is now the explicit default response protocol while preserving the existing
   `RLM::ResponseProtocol.output_instructions` and `tags_for` compatibility methods.
+- README is now a compact orientation page; detailed usage, runtime feature, and production notes moved into focused
+  guide docs that ship with the gem.
 
 ## [0.2.0] - 2026-05-15
 

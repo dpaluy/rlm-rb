@@ -29,15 +29,30 @@ Gem::Specification.new do |spec|
     ls.readlines("\x0", chomp: true)
   end
   working_tree_files = Dir.chdir(__dir__) do
-    Dir["lib/**/*", "examples/**/*", "README.md", "CHANGELOG.md", "LICENSE.txt"].select { |path| File.file?(path) }
+    Dir[
+      "lib/**/*",
+      "examples/**/*",
+      "docs/plain-ruby-usage.md",
+      "docs/runtime-features.md",
+      "docs/production.md",
+      "README.md",
+      "CHANGELOG.md",
+      "LICENSE.txt"
+    ].select { |path| File.file?(path) }
   end
-  spec.files = (tracked_files + working_tree_files).uniq.reject do |f|
+  shipped_docs = %w[
+    docs/plain-ruby-usage.md
+    docs/runtime-features.md
+    docs/production.md
+  ]
+  rejected_files = (tracked_files + working_tree_files).uniq.reject do |f|
     (f == gemspec) ||
       f.start_with?(*%w[
                       test/ spec/ bin/ Gemfile .gitignore .github/ .rubocop.yml
-                      docs/ .agents/ AGENTS.md CLAUDE.md Rakefile .yardopts
+                      .agents/ AGENTS.md CLAUDE.md Rakefile .yardopts
                     ])
   end
+  spec.files = rejected_files.reject { |f| f.start_with?("docs/") && !shipped_docs.include?(f) }
   spec.require_paths = ["lib"]
   spec.extra_rdoc_files = Dir["README.md", "CHANGELOG.md", "LICENSE.txt"]
 
