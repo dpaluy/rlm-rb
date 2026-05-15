@@ -33,6 +33,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the default tag-delimited protocol.
 - `RLM::Optimizer::Dspy` and `RLM::Optimizer::DspyProgram` for adapting RLM eval examples and predictions to
   dspy.rb teleprompter optimizers.
+- Optional ActiveSupport notification emission for `rlm.run` and `rlm.lm_call` when ActiveSupport is already loaded.
 
 ### Changed
 

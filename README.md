@@ -100,7 +100,7 @@ executes generated code in the host process and is only for dev/test.
 | `RLM::Optimizer::Dspy` | Ready for caller-supplied dspy teleprompters |
 | `RLM::TraceStore` / `RLM::TraceStore::Memory` | Ready for plain Ruby in-memory storage |
 | Runtime caching | Ready for subcalls, file reads, tools, and skills |
-| Optional telemetry spans | Ready through `RLM::Telemetry` |
+| Optional telemetry spans and ActiveSupport notifications | Ready through `RLM::Telemetry` |
 | `RLM::Lm::RubyLLM` and `RLM::Signature::Dspy` | Ready |
 | Rails Railtie, generator, migrations, ActiveStorage adapter | Future v2 milestone |
 

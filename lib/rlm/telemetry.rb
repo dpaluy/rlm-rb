@@ -11,15 +11,34 @@ module RLM
     end
 
     def in_span(name, attributes: {}, &)
+      active_support_instrument(name, attributes) { trace_span(name, attributes, &) }
+    end
+
+    private
+
+    attr_reader :tracer
+
+    def active_support_instrument(name, attributes, &)
+      notifications = active_support_notifications
+      return yield unless notifications.respond_to?(:instrument)
+
+      notifications.instrument(name, attributes.dup, &)
+    end
+
+    def trace_span(name, attributes, &)
       tracer = resolved_tracer
       return yield unless tracer.respond_to?(:in_span)
 
       tracer.in_span(name, attributes: attributes, &)
     end
 
-    private
+    def active_support_notifications
+      return nil unless defined?(::ActiveSupport)
+      return nil unless ::ActiveSupport.respond_to?(:const_defined?)
+      return nil unless ::ActiveSupport.const_defined?(:Notifications, false)
 
-    attr_reader :tracer
+      ::ActiveSupport.const_get(:Notifications)
+    end
 
     def resolved_tracer
       tracer || open_telemetry_tracer
