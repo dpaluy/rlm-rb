@@ -135,8 +135,9 @@ host-app concern.
   prepared temp workdir into `/workspace`.
 - `RLM::Sandbox::Remote` sends prepared context/tool/skill manifests and code to a caller-supplied client, so a host app
   can route execution to its own isolated runner without adding transport dependencies to the gem.
+- `RLM::Sandbox::Wasm` uses the same manifest/exec protocol for a host-owned WASM runtime, so apps can integrate
+  Wasmtime or another runtime without adding a WASM dependency to the core gem.
 - Subprocess and Docker helper calls are proxied to the parent runtime over a narrow JSON-line protocol.
-- WASM isolated runners remain a later hardening backend.
 - Mounted files are data, not instructions; generated code should treat file contents as untrusted input.
 
 ## Development

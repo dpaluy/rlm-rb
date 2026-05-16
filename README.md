@@ -90,7 +90,7 @@ executes generated code in the host process and is only for dev/test.
 | `RLM::Limits` | Ready |
 | `RLM::File` and `RLM::Context` | Ready with subprocess-safe manifests and mounted file paths |
 | `RLM::Trace`, `RLM::Result`, `RLM::TraceReplay` | Ready |
-| `RLM::Sandbox::Subprocess` / `RLM::Sandbox::Docker` | Ready for local process and container isolation |
+| `RLM::Sandbox::Subprocess` / `RLM::Sandbox::Docker` / `RLM::Sandbox::Remote` / `RLM::Sandbox::Wasm` | Ready for local, container, remote, and host-owned WASM isolation |
 | `RLM::Sandbox::UnsafeInProcess` | Dev/test only |
 | `RLM::Tool`, `RLM::ToolRegistry`, tool schemas, tool authorization | Ready for read-only tools |
 | `RLM::Skill` plus CSV, directory, PDF, HTML, and browser skills | Ready for dependency-free context inspection |
