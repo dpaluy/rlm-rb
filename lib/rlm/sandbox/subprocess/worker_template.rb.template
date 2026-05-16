@@ -79,6 +79,8 @@ class Scope
   def grep_files(query) = skill("directory", "grep", { "query" => query })
   def pdf_info(handle) = skill("pdf", "info", { "handle" => handle })
   def pdf_text_preview(handle, bytes: 4096) = skill("pdf", "text_preview", { "handle" => handle, "bytes" => bytes })
+  def pdf_extract_text(handle) = skill("pdf", "extract_text", { "handle" => handle })["text"]
+  def pdf_ocr_text(handle) = skill("pdf", "ocr_text", { "handle" => handle })["text"]
   def html_text(handle) = skill("html", "text", { "handle" => handle })["text"]
   def html_links(handle) = skill("html", "links", { "handle" => handle })
   def browser_text(url) = skill("browser", "text", { "url" => url })["text"]

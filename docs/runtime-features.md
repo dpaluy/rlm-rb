@@ -83,13 +83,21 @@ Available helpers:
 |-------|---------|
 | `RLM::Skills::CSV` | `csv_rows(handle, headers: true)` |
 | `RLM::Skills::Directory` | `directory_files`, `grep_files(query)` |
-| `RLM::Skills::PDF` | `pdf_info(handle)`, `pdf_text_preview(handle, bytes: 4096)` |
+| `RLM::Skills::PDF` | `pdf_info(handle)`, `pdf_text_preview(handle, bytes: 4096)`, `pdf_extract_text(handle)`, `pdf_ocr_text(handle)` |
 | `RLM::Skills::HTML` | `html_text(handle)`, `html_links(handle)` |
 | `RLM::Skills::Browser` | `browser_text(url)`, `browser_links(url)`, `browser_snapshot(url)` |
 
-The PDF skill is metadata/text-preview only. The HTML skill is static extraction only and does not run a browser,
-JavaScript, or network requests. `RLM::Skills::Browser` accepts a caller-supplied client for rendered page inspection
-without adding Playwright, Selenium, or another browser automation dependency to the core gem.
+By default, the PDF skill is metadata/text-preview only. Pass caller-supplied `extractor:` and `ocr:` clients to use
+real PDF parsing or OCR libraries in the host app without adding those dependencies to the core gem. The HTML skill is
+static extraction only and does not run a browser, JavaScript, or network requests. `RLM::Skills::Browser` accepts a
+caller-supplied client for rendered page inspection without adding Playwright, Selenium, or another browser automation
+dependency to the core gem.
+
+```ruby
+pdf = RLM::Skills::PDF.new(extractor: your_pdf_reader, ocr: your_ocr_service)
+
+RLM.predict(InvoiceExtraction, input: { scan: file }, skills: [pdf])
+```
 
 ```ruby
 browser = RLM::Skills::Browser.new(client: your_browser_client)

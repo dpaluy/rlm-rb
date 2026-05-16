@@ -54,6 +54,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Dependency-free `RLM::Skills::Browser` for caller-supplied rendered page inspection through subprocess helpers.
 - `RLM::Optimizer::DspyPresets` and `RLM::Optimizer::Dspy.compile(..., preset:)` for named dspy optimizer presets
   without adding optional optimizer gems as core dependencies.
+- `RLM::Skills::PDF` caller-supplied `extractor:` and `ocr:` clients with `pdf_extract_text` and `pdf_ocr_text`
+  subprocess helpers.
 
 ### Changed
 
