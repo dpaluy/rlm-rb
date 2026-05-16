@@ -33,6 +33,14 @@ Replay a stored trace into a terminal `RLM::Result` without making provider call
 replayed = RLM::TraceReplay.result(result.trace)
 ```
 
+Build host-app dashboard metrics from in-memory results or persisted records:
+
+```ruby
+summary = RLM::Dashboard.summary(store.all)
+summary[:status_counts]
+summary[:average_duration_ms]
+```
+
 ## Tools
 
 Tools are explicit read-only capabilities exposed to generated runtime code through `tool(tool_name, input_hash)`.
