@@ -105,7 +105,7 @@ executes generated code in the host process and is only for dev/test.
 | `RLM::Lm::RubyLLM` and `RLM::Signature::Dspy` | Ready |
 | Optional Rails Railtie | Ready through `require "rlm/rails"` when Rails is loaded |
 | Rails install generator | Ready for initializer, trace model, and trace migration setup |
-| ActiveStorage adapter | Future v2 milestone |
+| ActiveStorage adapter | Ready through `RLM::Rails::ActiveStorage` |
 
 ## Guides
 

@@ -81,6 +81,9 @@ Available helpers:
 The PDF skill is metadata/text-preview only. The HTML skill is static extraction only and does not run a browser,
 JavaScript, or network requests.
 
+Rails apps that load `require "rlm/rails"` can turn ActiveStorage blobs, attachments, or collections into context files
+with `RLM::Rails::ActiveStorage.file(...)` and `RLM::Rails::ActiveStorage.files(...)`.
+
 ## Eval Export And Local Evals
 
 Use `trace_store` to collect terminal results, then export them as JSONL eval examples.

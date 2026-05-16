@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative "../rlm"
+require_relative "rails/active_storage"
 
 module RLM
   module Rails

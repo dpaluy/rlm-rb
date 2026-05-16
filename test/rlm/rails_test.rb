@@ -94,6 +94,7 @@ class RLM::RailsTest < Minitest::Test
     RLM.send(:remove_const, :Rails) if RLM.const_defined?(:Rails, false)
 
     $LOADED_FEATURES.delete("#{rails_path}.rb")
+    $LOADED_FEATURES.delete(File.expand_path("../../lib/rlm/rails/active_storage.rb", __dir__))
     $LOADED_FEATURES.delete(File.expand_path("../../lib/rlm/rails/railtie.rb", __dir__))
   end
 

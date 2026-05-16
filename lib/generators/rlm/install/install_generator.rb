@@ -13,7 +13,7 @@ unless defined?(Rails::Generators::Base)
 end
 
 module RLM
-  class InstallGenerator < Rails::Generators::Base
+  class InstallGenerator < ::Rails::Generators::Base
     source_root ::File.expand_path("templates", __dir__)
 
     def copy_initializer

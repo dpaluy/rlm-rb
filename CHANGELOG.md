@@ -46,6 +46,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Rails dependency to the core gem.
 - Optional `RLM::InstallGenerator` for Rails apps to create `config/initializers/rlm.rb`.
 - `RLM::TraceStore::ActiveRecord` plus Rails generator templates for `RlmTrace` and `rlm_traces`.
+- `RLM::Rails::ActiveStorage` helpers for converting ActiveStorage blobs, attachments, and collections into
+  `RLM::File` objects.
 
 ### Changed
 
