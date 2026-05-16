@@ -78,7 +78,7 @@ executes generated code in the host process and is only for dev/test.
 
 - **Interface:** typed task contracts through `RLM::Signature` and `RLM::Signature::Dspy`.
 - **Inference:** provider and model calls through `RLM::Lm::*`, including `RLM::Lm::RubyLLM`.
-- **Rendering:** response protocols through `RLM::ResponseProtocol::Tags` and `RLM::ResponseProtocol::JSON`.
+- **Rendering:** response protocols through tags, JSON, XML, provider-native JSON, and host-owned BAML adapters.
 - **Call graph:** recursive runtime execution through `RLM::Runtime`, sandbox helpers, tools, and sub-signatures.
 - **Evals:** trace/result export, local evals, and dspy optimizer entrypoints.
 

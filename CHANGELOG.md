@@ -56,6 +56,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   without adding optional optimizer gems as core dependencies.
 - `RLM::Skills::PDF` caller-supplied `extractor:` and `ocr:` clients with `pdf_extract_text` and `pdf_ocr_text`
   subprocess helpers.
+- `RLM::ResponseProtocol::BAML` for host-owned BAML adapters without adding BAML as a core dependency.
 
 ### Changed
 

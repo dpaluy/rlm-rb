@@ -60,6 +60,50 @@ class RLM::ResponseProtocolTest < Minitest::Test
     assert_equal ["total"], schema.dig(:schema, :required)
   end
 
+  def test_baml_protocol_delegates_instructions_and_extraction
+    adapter = Class.new do
+      def output_instructions = "Use the app BAML function."
+
+      def extract(response)
+        { "type" => "final", "content" => { "answer" => response } }
+      end
+    end
+    protocol = RLM::ResponseProtocol::BAML.new(adapter: adapter.new)
+
+    assert_equal "Use the app BAML function.", protocol.output_instructions
+    assert_equal({ type: :final, content: { "answer" => "ok" } }, protocol.extract("ok"))
+  end
+
+  def test_baml_protocol_rejects_unknown_response_type
+    adapter = Class.new do
+      def extract(_response) = { type: :unknown, content: "no" }
+    end
+    protocol = RLM::ResponseProtocol::BAML.new(adapter: adapter.new)
+
+    assert_raises(RLM::ParseError) { protocol.extract("bad") }
+  end
+
+  def test_runtime_can_use_baml_protocol_adapter
+    signature = Struct.new(:name, :description, :input_fields, :output_fields, keyword_init: true) do
+      def validate_input(*) = []
+      def validate_output(*) = []
+    end.new(name: "BamlRuntime", description: "Use BAML", input_fields: {}, output_fields: { answer: :string })
+    adapter = Class.new do
+      def extract(_response) = { type: :final, content: { "answer" => "ok" } }
+    end
+    lm = RLM::Lm::Mock.new(responses: ["adapter-owned response"])
+
+    result = RLM.predict(
+      signature,
+      input: {},
+      lm: lm,
+      response_protocol: RLM::ResponseProtocol::BAML.new(adapter: adapter.new)
+    )
+
+    assert result.success?
+    assert_equal({ "answer" => "ok" }, result.output)
+  end
+
   def test_response_protocol_can_be_required_directly
     script = 'require "rlm/response_protocol"; puts RLM::ResponseProtocol.output_instructions'
     output = IO.popen([RbConfig.ruby, "-Ilib", "-e", script], &:read)

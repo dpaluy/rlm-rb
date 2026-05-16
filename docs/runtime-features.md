@@ -187,7 +187,18 @@ RLM.predict(InvoiceExtraction, input: input, signatures: [VendorNormalization], 
 
 Plain Ruby hashes are supported. Cache objects that respond to `fetch` and `write` are also supported.
 ## Response Protocols
-Default responses use `RLM::ResponseProtocol::Tags`; JSON and XML envelopes are also available.
+Default responses use `RLM::ResponseProtocol::Tags`; JSON, XML, provider-native JSON, and host-owned BAML adapters are
+also available.
+
+```ruby
+baml_protocol = RLM::ResponseProtocol::BAML.new(adapter: your_baml_adapter)
+
+RLM.predict(InvoiceExtraction, input: input, response_protocol: baml_protocol)
+```
+
+The BAML bridge expects the host adapter to provide `output_instructions` or `instructions`, and `extract(response)` or
+`parse(response)`. It normalizes adapter results into RLM's `{ type:, content: }` response protocol contract without
+adding a BAML dependency to the gem.
 
 ## Telemetry
 
