@@ -19,5 +19,19 @@ module RLM
     def copy_initializer
       template "rlm.rb", "config/initializers/rlm.rb"
     end
+
+    def copy_trace_model
+      template "rlm_trace.rb", "app/models/rlm_trace.rb"
+    end
+
+    def copy_trace_migration
+      template "create_rlm_traces.rb", "db/migrate/#{migration_timestamp}_create_rlm_traces.rb"
+    end
+
+    private
+
+    def migration_timestamp
+      Time.now.utc.strftime("%Y%m%d%H%M%S")
+    end
   end
 end

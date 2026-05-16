@@ -9,6 +9,7 @@ RLM.configure do |config|
   config.sandbox = RLM::Sandbox::Subprocess.new(timeout_seconds: 10)
   config.cache ||= Rails.cache
   config.logger = Rails.logger
+  config.trace_store = RLM::TraceStore::ActiveRecord.new(record_class: RlmTrace)
 
   config.default_limits = RLM::Limits.new(
     max_iterations: 8,

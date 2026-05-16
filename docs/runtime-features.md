@@ -5,7 +5,8 @@ This guide covers traces, tools, skills, evals, optimization, caching, response 
 ## Trace Stores
 
 Any `trace_store` object only needs to respond to `#call(result)`. `RLM::TraceStore` formalizes that contract and
-`RLM::TraceStore::Memory` provides a small in-memory store for tests, scripts, and local eval collection.
+`RLM::TraceStore::Memory` provides a small in-memory store for tests, scripts, and local eval collection. Rails apps
+can use `RLM::TraceStore::ActiveRecord` with the generated `RlmTrace` model for durable trace storage.
 
 ```ruby
 store = RLM::TraceStore::Memory.new
@@ -18,6 +19,12 @@ result = RLM.predict(
 
 store.fetch(result.trace.id)
 store.all
+```
+
+```ruby
+RLM.configure do |config|
+  config.trace_store = RLM::TraceStore::ActiveRecord.new(record_class: RlmTrace)
+end
 ```
 
 Replay a stored trace into a terminal `RLM::Result` without making provider calls:

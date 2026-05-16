@@ -98,14 +98,14 @@ executes generated code in the host process and is only for dev/test.
 | `RLM::PromptBuilder`, `RLM::CodeExtractor`, `RLM::ResponseProtocol` | Ready |
 | `RLM::EvalExample`, `RLM::EvalExporter`, `RLM::Eval.run` | Ready |
 | `RLM::Optimizer::Dspy` | Ready for caller-supplied dspy teleprompters |
-| `RLM::TraceStore` / `RLM::TraceStore::Memory` | Ready for plain Ruby in-memory storage |
+| `RLM::TraceStore` / `RLM::TraceStore::Memory` / `RLM::TraceStore::ActiveRecord` | Ready for plain Ruby and Rails storage |
 | `RLM::Review` / `RLM::Review::MemoryQueue` | Ready for plain Ruby review routing |
 | Runtime caching | Ready for subcalls, file reads, tools, and skills |
 | Optional telemetry spans, ActiveSupport notifications, and dspy spans | Ready through `RLM::Telemetry` |
 | `RLM::Lm::RubyLLM` and `RLM::Signature::Dspy` | Ready |
 | Optional Rails Railtie | Ready through `require "rlm/rails"` when Rails is loaded |
-| Rails install generator | Ready for initializer setup |
-| Rails migrations, ActiveStorage adapter | Future v2 milestone |
+| Rails install generator | Ready for initializer, trace model, and trace migration setup |
+| ActiveStorage adapter | Future v2 milestone |
 
 ## Guides
 

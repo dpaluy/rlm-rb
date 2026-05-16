@@ -5,8 +5,9 @@ This guide covers intended host-app setup, error handling, production safety, an
 ## Rails Setup
 
 The optional Rails Railtie is available through `require "rlm/rails"`. It wires Rails cache and logger into
-`RLM.config` when Rails is loaded, without adding Rails as a core gem dependency. ActiveRecord trace tables,
-ActiveStorage-specific mounting, and background-job examples remain v2 items tracked in `docs/postponed-issues.md`.
+`RLM.config` when Rails is loaded, without adding Rails as a core gem dependency. The Rails install generator creates
+the initializer, `RlmTrace` model, and `rlm_traces` migration. ActiveStorage-specific mounting and background-job
+examples remain v2 items tracked in `docs/postponed-issues.md`.
 
 ```ruby
 # config/application.rb or an initializer
@@ -30,6 +31,7 @@ RLM.configure do |config|
   config.sandbox = RLM::Sandbox::Subprocess.new(timeout_seconds: 10)
   config.cache = Rails.cache
   config.logger = Rails.logger
+  config.trace_store = RLM::TraceStore::ActiveRecord.new(record_class: RlmTrace)
 
   config.default_limits = RLM::Limits.new(
     max_iterations: 8,
@@ -40,6 +42,12 @@ RLM.configure do |config|
     max_recursion_depth: 1
   )
 end
+```
+
+Run the generated migration before using the ActiveRecord trace store:
+
+```sh
+bin/rails db:migrate
 ```
 
 API keys belong in `Rails.application.credentials`, not env files. Per RubyLLM's Rails integration, provider keys are

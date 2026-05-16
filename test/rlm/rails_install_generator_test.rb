@@ -9,8 +9,13 @@ class RLM::RailsInstallGeneratorTest < Minitest::Test
 
       generator = RLM::InstallGenerator.new
       generator.copy_initializer
+      generator.copy_trace_model
+      generator.copy_trace_migration
 
-      assert_equal [["rlm.rb", "config/initializers/rlm.rb"]], generator.templates
+      assert_equal ["rlm.rb", "config/initializers/rlm.rb"], generator.templates[0]
+      assert_equal ["rlm_trace.rb", "app/models/rlm_trace.rb"], generator.templates[1]
+      assert_equal "create_rlm_traces.rb", generator.templates[2][0]
+      assert_match %r{\Adb/migrate/\d{14}_create_rlm_traces\.rb\z}, generator.templates[2][1]
       assert File.directory?(RLM::InstallGenerator.source_root_path)
     end
   end
@@ -26,6 +31,7 @@ class RLM::RailsInstallGeneratorTest < Minitest::Test
     assert_includes template, "config.sub_lm = RLM::Lm::RubyLLM.new"
     assert_includes template, "config.sandbox = RLM::Sandbox::Subprocess.new"
     assert_includes template, "config.cache ||= Rails.cache"
+    assert_includes template, "config.trace_store = RLM::TraceStore::ActiveRecord.new(record_class: RlmTrace)"
   end
 
   private
