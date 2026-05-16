@@ -4,6 +4,7 @@ require "dspy"
 
 require_relative "../eval_example"
 require_relative "dspy_program"
+require_relative "dspy_presets"
 
 module RLM
   module Optimizer
@@ -13,7 +14,10 @@ module RLM
       def self.compile(
         signature,
         examples:,
-        teleprompter:,
+        teleprompter: nil,
+        preset: nil,
+        metric: nil,
+        optimizer_options: {},
         valset: nil,
         program: nil,
         predictor: nil,
@@ -22,7 +26,7 @@ module RLM
         new(
           signature,
           examples: examples,
-          teleprompter: teleprompter,
+          teleprompter: teleprompter || DspyPresets.build(preset, metric: metric, **optimizer_options),
           valset: valset,
           program: program,
           predictor: predictor,

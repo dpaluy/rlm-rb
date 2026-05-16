@@ -97,7 +97,7 @@ executes generated code in the host process and is only for dev/test.
 | `RLM::Predict`, `RLM::Runtime`, `RLM::Runtime::Bridge` | Ready |
 | `RLM::PromptBuilder`, `RLM::CodeExtractor`, `RLM::ResponseProtocol` | Ready |
 | `RLM::EvalExample`, `RLM::EvalExporter`, `RLM::Eval.run` | Ready |
-| `RLM::Optimizer::Dspy` | Ready for caller-supplied dspy teleprompters |
+| `RLM::Optimizer::Dspy` | Ready for caller-supplied dspy teleprompters and named presets |
 | `RLM::TraceStore` / `RLM::TraceStore::Memory` / `RLM::TraceStore::ActiveRecord` | Ready for plain Ruby and Rails storage |
 | `RLM::Review` / `RLM::Review::MemoryQueue` | Ready for plain Ruby review routing |
 | `RLM::Dashboard.summary` | Ready for host-app dashboard metrics |

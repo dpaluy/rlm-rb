@@ -135,7 +135,7 @@ final validated output and runtime counters; trace-only records use the last sub
 ## dspy Optimization
 
 `RLM::Optimizer::Dspy` converts `RLM::EvalExample` or structured hash examples into `DSPy::Example` instances and
-calls a supplied dspy teleprompter with an RLM-backed program.
+calls a supplied or preset dspy teleprompter with an RLM-backed program.
 
 ```ruby
 optimization = RLM::Optimizer::Dspy.compile(
@@ -152,7 +152,21 @@ optimization = RLM::Optimizer::Dspy.compile(
 ```
 
 The adapter uses the optimizer's native `compile(program, trainset:, valset:)` contract. RLM does not bundle optional
-dspy optimizer gems; pass the teleprompter object explicitly.
+dspy optimizer gems; pass the teleprompter object explicitly or use a named preset when the corresponding optional dspy
+optimizer support is available.
+
+```ruby
+optimization = RLM::Optimizer::Dspy.compile(
+  RLM::Signature::Dspy.new(InvoiceExtraction),
+  examples: eval_examples,
+  preset: :mipro_v2_light,
+  metric: ->(example, prediction) { prediction.total_cents == example.expected_values[:total_cents] },
+  lm: RLM::Lm::RubyLLM.new(model: "gpt-5-mini")
+)
+```
+
+Built-in preset names are `:mipro_v2_light`, `:mipro_v2_medium`, and `:mipro_v2_heavy`. Register app-specific presets
+with `RLM::Optimizer::DspyPresets.register(:name) { |metric:, **options| ... }`.
 
 ## Caching
 
