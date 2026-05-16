@@ -6,8 +6,7 @@ This guide covers intended host-app setup, error handling, production safety, an
 
 The optional Rails Railtie is available through `require "rlm/rails"`. It wires Rails cache and logger into
 `RLM.config` when Rails is loaded, without adding Rails as a core gem dependency. The Rails install generator creates
-the initializer, `RlmTrace` model, and `rlm_traces` migration. Background-job examples remain v2 items tracked in
-`docs/postponed-issues.md`.
+the initializer, `RlmTrace` model, `rlm_traces` migration, and `RlmPredictJob` ActiveJob example.
 
 ```ruby
 # config/application.rb or an initializer
@@ -57,6 +56,17 @@ objects:
 context = RLM::Context.new(files: RLM::Rails::ActiveStorage.files(invoice.documents))
 
 RLM.predict(InvoiceExtraction, input: { invoice_id: invoice.id }, context: context)
+```
+
+Use the generated `RlmPredictJob` for background execution. It runs through ActiveJob, so Rails can route it to the
+async adapter, Sidekiq, GoodJob, or another configured queue adapter:
+
+```ruby
+RlmPredictJob.perform_later(
+  "InvoiceExtraction",
+  { invoice_id: invoice.id },
+  { context: RLM::Context.new(files: RLM::Rails::ActiveStorage.files(invoice.documents)) }
+)
 ```
 
 API keys belong in `Rails.application.credentials`, not env files. Per RubyLLM's Rails integration, provider keys are

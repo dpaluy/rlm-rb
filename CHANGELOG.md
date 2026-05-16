@@ -48,6 +48,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `RLM::TraceStore::ActiveRecord` plus Rails generator templates for `RlmTrace` and `rlm_traces`.
 - `RLM::Rails::ActiveStorage` helpers for converting ActiveStorage blobs, attachments, and collections into
   `RLM::File` objects.
+- Generated `RlmPredictJob` ActiveJob example for Rails apps using async, Sidekiq, GoodJob, or another ActiveJob
+  adapter.
 
 ### Changed
 

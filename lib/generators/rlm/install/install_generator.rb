@@ -28,6 +28,10 @@ module RLM
       template "create_rlm_traces.rb", "db/migrate/#{migration_timestamp}_create_rlm_traces.rb"
     end
 
+    def copy_predict_job
+      template "rlm_predict_job.rb", "app/jobs/rlm_predict_job.rb"
+    end
+
     private
 
     def migration_timestamp
