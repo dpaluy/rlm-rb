@@ -85,9 +85,17 @@ Available helpers:
 | `RLM::Skills::Directory` | `directory_files`, `grep_files(query)` |
 | `RLM::Skills::PDF` | `pdf_info(handle)`, `pdf_text_preview(handle, bytes: 4096)` |
 | `RLM::Skills::HTML` | `html_text(handle)`, `html_links(handle)` |
+| `RLM::Skills::Browser` | `browser_text(url)`, `browser_links(url)`, `browser_snapshot(url)` |
 
 The PDF skill is metadata/text-preview only. The HTML skill is static extraction only and does not run a browser,
-JavaScript, or network requests.
+JavaScript, or network requests. `RLM::Skills::Browser` accepts a caller-supplied client for rendered page inspection
+without adding Playwright, Selenium, or another browser automation dependency to the core gem.
+
+```ruby
+browser = RLM::Skills::Browser.new(client: your_browser_client)
+
+RLM.predict(PageSummary, input: { url: "https://example.com" }, skills: [browser])
+```
 
 Rails apps that load `require "rlm/rails"` can turn ActiveStorage blobs, attachments, or collections into context files
 with `RLM::Rails::ActiveStorage.file(...)` and `RLM::Rails::ActiveStorage.files(...)`.

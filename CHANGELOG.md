@@ -51,6 +51,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Generated `RlmPredictJob` ActiveJob example for Rails apps using async, Sidekiq, GoodJob, or another ActiveJob
   adapter.
 - `RLM::Dashboard.summary` for dependency-free dashboard metrics over results or persisted trace records.
+- Dependency-free `RLM::Skills::Browser` for caller-supplied rendered page inspection through subprocess helpers.
 
 ### Changed
 

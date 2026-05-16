@@ -93,7 +93,7 @@ executes generated code in the host process and is only for dev/test.
 | `RLM::Sandbox::Subprocess` / `RLM::Sandbox::Docker` | Ready for local process and container isolation |
 | `RLM::Sandbox::UnsafeInProcess` | Dev/test only |
 | `RLM::Tool`, `RLM::ToolRegistry`, tool schemas, tool authorization | Ready for read-only tools |
-| `RLM::Skill` plus CSV, directory, PDF, and HTML skills | Ready for dependency-free context inspection |
+| `RLM::Skill` plus CSV, directory, PDF, HTML, and browser skills | Ready for dependency-free context inspection |
 | `RLM::Predict`, `RLM::Runtime`, `RLM::Runtime::Bridge` | Ready |
 | `RLM::PromptBuilder`, `RLM::CodeExtractor`, `RLM::ResponseProtocol` | Ready |
 | `RLM::EvalExample`, `RLM::EvalExporter`, `RLM::Eval.run` | Ready |

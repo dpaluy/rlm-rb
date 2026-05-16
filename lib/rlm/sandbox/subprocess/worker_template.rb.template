@@ -81,6 +81,9 @@ class Scope
   def pdf_text_preview(handle, bytes: 4096) = skill("pdf", "text_preview", { "handle" => handle, "bytes" => bytes })
   def html_text(handle) = skill("html", "text", { "handle" => handle })["text"]
   def html_links(handle) = skill("html", "links", { "handle" => handle })
+  def browser_text(url) = skill("browser", "text", { "url" => url })["text"]
+  def browser_links(url) = skill("browser", "links", { "url" => url })
+  def browser_snapshot(url) = skill("browser", "snapshot", { "url" => url })
   def submit(output_hash) = @protocol.call("submit", [output_hash])
   def read_file(handle) = @protocol.call("read_file", [handle])
   def list_files = @protocol.call("list_files", [])
